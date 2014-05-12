@@ -19,24 +19,30 @@ class ControllerPolicyApplicator extends Extension {
 	 * $policy injected to $this->owner
 	 */
 
-	function setPolicy($policy) {
-		$this->owner->policy = $policy;
+	function setPolicies($policies) {
+		if (!is_array($policies)) $policies = array($policies);
+
+		$this->owner->policies = $policies;
 	}
 
-	function getPolicy() {
-		if (isset($this->owner) && isset($this->owner->policy)) {
-			return $this->owner->policy;
+	function getPolicies() {
+		if (isset($this->owner) && isset($this->owner->policies)) {
+			return $this->owner->policies;
 		}
 	}
 
 	/**
-	 * Register the requested policy with the global request filter. This doesn't mean the policy will be
+	 * Register the requested policies with the global request filter. This doesn't mean the policies will be
 	 * executed at this point - it will rather be delayed until the RequestProcessor::postRequest runs.
 	 */
 	function onAfterInit() {
+		// Flip the policy array, so the first element in the array is the one applying last.
+		// This is needed so the policies on inheriting Controllers are in the intuitive order:
+		// the more specific overrides the less specific.
+		$policies = array_reverse($this->getPolicies());
 
-		if ($this->getPolicy()) {
-			$this->requestFilter->addPolicy($this->getPolicy());
+		if ($policies) foreach($policies as $policy) {
+			$this->requestFilter->addPolicy($policy);
 		}
 
 	}

@@ -5,17 +5,19 @@
  * Configuration:
  *
  * Injector:
- *   Defaults:
- *     class: GeneralPolicy
+ *   GeneralPolicy:
+ *     class: CustomHeaderPolicy
  *     properties:
  *       headers:
  *         Cache-Control: "public, max-age=600, no-transform"
  *         Custom-Header: "Hello"
  * HomePage_Controller:
+ *   dependencies:
+ *     Policy: '%$GeneralPolicy'
  *   extensions:
- *     - ControllerPolicyApplicator('Defaults')
+ *     - ControllerPolicyApplicator
  */
-class GeneralPolicy implements ControllerPolicy {
+class CustomHeaderPolicy implements ControllerPolicy {
 
 	/**
 	 * @var array

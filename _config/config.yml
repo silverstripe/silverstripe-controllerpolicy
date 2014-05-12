@@ -9,3 +9,6 @@ Injector:
 ControllerPolicyApplicator:
   dependencies:
     RequestFilter: '%$ControllerPolicyRequestFilter'
+Controller:
+  extensions:
+    - ControllerPolicyApplicator
