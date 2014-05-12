@@ -38,10 +38,6 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 	 * Copied and adjusted from HTTP::add_cache_headers
 	 */
 	public function applyToResponse(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
-
-		// Development sites have frequently changing templates; this can get stuffed up by the code
-		// below.
-		if(Director::isDev()) return;
 		
 		// Popuplate $responseHeaders with all the headers that we want to build
 		$responseHeaders = array();

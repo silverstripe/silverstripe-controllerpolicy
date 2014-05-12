@@ -17,6 +17,7 @@ Dependency Injection and apply it directly to `HomePage_Controller`:
 		class: CachingPolicy
 		properties:
 		  cacheAge: 300
+		  vary: 'Cookie, X-Forwarded-Protocol, Accept'
 	HomePage_Controller:
 	  dependencies:
 		Policies: '%$MyCachingPolicy'
