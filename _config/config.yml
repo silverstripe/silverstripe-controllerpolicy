@@ -1,0 +1,8 @@
+---
+Name: controllerpolicy
+---
+Injector:
+  RequestProcessor:
+    properties:
+      filters:
+        - '%$ControllerPolicyRequestFilter'
