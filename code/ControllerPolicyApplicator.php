@@ -36,12 +36,14 @@ class ControllerPolicyApplicator extends Extension {
 	 * executed at this point - it will rather be delayed until the RequestProcessor::postRequest runs.
 	 */
 	function onAfterInit() {
+		if (!$this->getPolicies()) return;
+
 		// Flip the policy array, so the first element in the array is the one applying last.
 		// This is needed so the policies on inheriting Controllers are in the intuitive order:
 		// the more specific overrides the less specific.
 		$policies = array_reverse($this->getPolicies());
 
-		if ($policies) foreach($policies as $policy) {
+		foreach($policies as $policy) {
 			$this->requestFilter->addPolicy($policy);
 		}
 
