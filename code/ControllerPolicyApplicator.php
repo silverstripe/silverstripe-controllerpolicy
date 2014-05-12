@@ -8,22 +8,25 @@
  * latter will override the former.
  */
 class ControllerPolicyApplicator extends Extension {
-	
-	private $policy;
 
-	function setPolicy($policy) {
-		$this->policy = $policy;
-	}
+	private $requestFilter;
 
-	function getPolicy() {
-		return $this->policy;
+	function setRequestFilter($filter) {
+		$this->requestFilter = $filter;
 	}
 
 	/**
-	 * Sets up the policy pseudo-singleton from the class name.
+	 * $policy injected to $this->owner
 	 */
-	function __construct($policyClass) {
-		$this->setPolicy(Injector::inst()->get($policyClass));
+
+	function setPolicy($policy) {
+		$this->owner->policy = $policy;
+	}
+
+	function getPolicy() {
+		if (isset($this->owner) && isset($this->owner->policy)) {
+			return $this->owner->policy;
+		}
 	}
 
 	/**
@@ -33,8 +36,7 @@ class ControllerPolicyApplicator extends Extension {
 	function onAfterInit() {
 
 		if ($this->getPolicy()) {
-			$requestFilter = Injector::inst()->get('ControllerPolicyRequestFilter');
-			$requestFilter->addPolicy($this->getPolicy());
+			$this->requestFilter->addPolicy($this->getPolicy());
 		}
 
 	}

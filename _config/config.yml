@@ -6,3 +6,6 @@ Injector:
     properties:
       filters:
         - '%$ControllerPolicyRequestFilter'
+ControllerPolicyApplicator:
+  dependencies:
+    RequestFilter: '%$ControllerPolicyRequestFilter'

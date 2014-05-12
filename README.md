@@ -13,13 +13,15 @@ Using this policy is done via your project-specific **config.yml**. We configure
 Dependency Injection (the "Injector" part below) and we apply it to the controller using the applicator object.
 
 	Injector:
-	  CachingPolicy:
+	  MyCachingPolicy:
 		class: CachingPolicy
 		properties:
 		  cacheAge: 300
 	HomePage_Controller:
+	  dependencies:
+		Policy: '%$MyCachingPolicy'
 	  extensions:
-		- ControllerPolicyApplicator('CachingPolicy')
+		- ControllerPolicyApplicator
 
 Note: this policy will override the default framework `HTTP::add_cache_headers`, which is exactly what we want. This
 allows us to for example customise the `Vary` headers which were previously hardcoded.
