@@ -19,6 +19,7 @@ class ControllerPolicyRequestFilter implements RequestFilter {
 	public function preRequest(SS_HTTPRequest $request, Session $session, DataModel $model) {
 
 		// No-op, we don't know the controller at this stage.
+		return true;
 
 	}
 
@@ -27,6 +28,8 @@ class ControllerPolicyRequestFilter implements RequestFilter {
 		foreach ($this->policies as $policy) {
 			$policy->applyToResponse($request, $response, $model);
 		}
+
+		return true;
 
 	}
 
