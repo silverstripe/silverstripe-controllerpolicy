@@ -1,6 +1,8 @@
 <?php
 /**
- *
+ * A rewrite of the default SilverStripe behaviour. Relies on originator object's LastEdited value, instead
+ * of HTTP globals. Also allows the consuming code to provide own getCacheAge per object (controller).
+ * See PageControlledPolicy as an example implementation of such customisation that applies on top of default.
  */
 
 class CachingPolicy extends HTTP implements ControllerPolicy {
@@ -26,12 +28,16 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 		$vary = $this->vary;
 		$responseHeaders = array();
 
-		if (is_callable($originator->getCacheAge)) {
-			$cacheAge = $originator->getCacheAge();
+		// Allow overriding max-age from the object hooked up to the policed controller.
+		if ($originator->hasMethod('getCacheAge')) {
+			$extendedCacheAge = $originator->getCacheAge($cacheAge);
+			if ($extendedCacheAge) $cacheAge = $extendedCacheAge;
 		}
 
-		if (is_callable($originator->getVary)) {
-			$vary = $originator->getVary();
+		// Same for vary, but probably less useful.
+		if ($originator->hasMethod('getVary')) {
+			$extendedVary = $originator->getVary($vary);
+			if ($extendedVary) $cacheAge = $extendedVary;
 		}
 
 		if($cacheAge > 0) {

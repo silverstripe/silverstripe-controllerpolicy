@@ -1,7 +1,21 @@
 # Controller Policy
 
 This module has been designed to provide the ability to configure response policies that apply per specific
-Controller-derived class.
+Controller.
+
+It comes with a small selection of policies for implementing caching:
+
+* CachingPolicy: rewrite of SilverStripe default.
+* CustomHeaderPolicy: allow adding any headers via config system.
+* NoopPolicy: allows zero-ing policies in Controllers extending other Controllers.
+
+An example Page extension PageControlledPolicy is also provided utilising CachingPolicy's ability to customise
+max-age based on CMS configuration on specific objects.
+
+Note that at the moment the `preRequest` filters are not too useful because they don't allow us to short-circuit
+the execution and allow us to for example return 304 early. We are working on a
+[pull request](https://github.com/silverstripe/silverstripe-framework/pull/3130) to make it possible to return something
+else than an `SS_HTTP_Exception` from this handler.
 
 ### Example: simple policy
 
@@ -74,3 +88,24 @@ We handle this array in reverse order, meaning that by default the top policy (m
 the others. This does not mean many Controller policies will trigger - rather, one Controller will apply a merged set.
 
 Caution: you can either use the array syntax, or value syntax. Choose what's easier.
+
+### Example: PageControlledPolicy
+
+Here is an example of how to implement CMS capability to override the max-age per specific page. In your config file
+put the following statements:
+
+	Injector:
+	  GeneralCachingPolicy:
+		class: CachingPolicy
+		properties:
+		  cacheAge: 900
+	HomePage_Controller:
+	  dependencies:
+		Policies: '%$GeneralCachingPolicy'
+	HomePage:
+	  extensions:
+		- PageControlledPolicy
+
+Here, applying the PageControlledPolicy extension to the HomePage results in a new MaxAge field being written into the
+DB, and a new tab available ("Caching") which lets the ADMIN user tweak the cache max-age header (denominated in
+minutes).
