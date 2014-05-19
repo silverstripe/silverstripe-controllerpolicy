@@ -7,9 +7,30 @@
 class ControllerPolicyRequestFilter implements RequestFilter {
 
 	/**
+	 * @var array $ignoreDomainRegexes Force some domains to be ignored. Accepts one wildcard at the beginning.
+	 */
+	private static $ignoreDomainRegexes = array();
+
+
+	/**
 	 * An associative array containing the 'originator' and 'policy' reference.
 	 */
 	private $requestedPolicies = array();
+
+	/**
+	 * Check if the given domain is on the list of ignored domains.
+	 */
+	public function isIgnoredDomain($domain) {
+
+		if ($ignoreRegexes = Config::inst()->get('ControllerPolicyRequestFilter', 'ignoreDomainRegexes')) {
+			foreach ($ignoreRegexes as $ignore) {
+				if (preg_match($ignore, $domain)>0) return true;
+			}
+		}
+
+		return false;
+
+	}
 
 	/**
 	 * Add a policy tuple.
@@ -33,6 +54,11 @@ class ControllerPolicyRequestFilter implements RequestFilter {
 	 * Apply all the requested policies.
 	 */
 	public function postRequest(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
+
+		// Ingore by regexes.
+		if ($this->isIgnoredDomain($_SERVER['HTTP_HOST'])) {
+			return true;
+		}
 
 		foreach ($this->requestedPolicies as $requestedPolicy) {
 
