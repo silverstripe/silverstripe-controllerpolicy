@@ -1,5 +1,5 @@
 {
-	"name": "mateusz/controllerpolicy",
+	"name": "mateusz/silverstripe-controllerpolicy",
 	"description": "SilverStripe module providing per-controller RequestFilter policies.",
 	"type": "silverstripe-module",
 	"keywords": ["silverstripe"],
