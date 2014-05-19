@@ -1,126 +1,80 @@
 <?php
 /**
- * Caching policy that replicates what SilverStripe Framework does, but is more readily configurable.
- * Still hooks into globals provided by HTTP to get the last modification time and etags.
  *
- * TODO, requires core changes:
- * - remove reliance on self and inheritance on HTTP.
- * - remove HTTP::set_cache_headers function and call from core.
- * - remove reliance on other globals like $_COOKIE
- *
- * Example usage:
- *
- * Injector:
- *   GeneralCachingPolicy:
- *     class: CachingPolicy
- *     properties:
- *       cacheAge: 300
- *       vary: 'Cookie, X-Forwarded-Protocol, Accept'
- * Controller:
- *   dependencies:
- *     Policies: '%$GeneralCachingPolicy'
  */
+
 class CachingPolicy extends HTTP implements ControllerPolicy {
+	/**
+	 * Extends HTTP to get access to globals describing the Last-Modified and Etag data.
+	 */
 
 	/**
-	 * @var int $cacheAge Max-age seconds to cache for.
+	 * @var int $cacheAge Max-age seconds to cache for if configuration not available from the originator.
 	 */
 	public $cacheAge = 0;
 
 	/**
-	 * @var string $vary Vary string to add. Do not add user-agent unless you vary on it and you have configured
-	 *	user-agent clustering in some way, otherwise this will be an equivalent to disabling caching as there
-	 *	is a lot of different UAs in the wild.
+	 * @var string $vary Vary string to add if configuration is not available from the originator.
+	 *		Note on vary headers: Do not add user-agent unless you vary on it AND you have configured user-agent
+	 *		clustering in some way, otherwise this will be an equivalent to disabling caching as there
+	 *		is a lot of different UAs in the wild.
 	 */
-	public $vary = 'Cookie, X-Forwarded-Protocol, User-Agent, Accept';
+	public $vary = 'Cookie, X-Forwarded-Protocol, Accept';
 
-	/**
-	 * Copied and adjusted from HTTP::add_cache_headers
-	 */
-	public function applyToResponse(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
-		
-		// Popuplate $responseHeaders with all the headers that we want to build
+	public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
+		$cacheAge = $this->cacheAge;
+		$vary = $this->vary;
 		$responseHeaders = array();
-		if(function_exists('apache_request_headers')) {
-			$requestHeaders = apache_request_headers();
-			if(isset($requestHeaders['X-Requested-With']) && $requestHeaders['X-Requested-With']=='XMLHttpRequest') {
-				$this->cacheAge = 0;
-			}
-			// bdc: now we must check for DUMB IE6:
-			if(isset($requestHeaders['x-requested-with']) && $requestHeaders['x-requested-with']=='XMLHttpRequest') {
-				$this->cacheAge = 0;
-			}
+
+		if (is_callable($originator->getCacheAge)) {
+			$cacheAge = $originator->getCacheAge();
 		}
 
-		if($this->cacheAge > 0) {
-			$responseHeaders["Cache-Control"] = "max-age=" . $this->cacheAge . ", must-revalidate, no-transform";
+		if (is_callable($originator->getVary)) {
+			$vary = $originator->getVary();
+		}
+
+		if($cacheAge > 0) {
+			// Note: must-revalidate means that the cache must revalidate AFTER the entry has gone stale.
+			$responseHeaders["Cache-Control"] = "max-age=" . $cacheAge . ", must-revalidate, no-transform";
 			$responseHeaders["Pragma"] = "";
+			$responseHeaders['Vary'] = $vary;
 
-			// To do: User-Agent should only be added in situations where you *are* actually
-			// varying according to user-agent.
-			$responseHeaders['Vary'] = $this->vary;
-		}
-		else {
-			if($response) {
-				// Grab header for checking. Unfortunately HTTPRequest uses a mistyped variant.
-				$contentDisposition = $response->getHeader('Content-disposition');
-				if (!$contentDisposition) $contentDisposition = $response->getHeader('Content-Disposition');
-			}
+			if($originator->LastEdited) {
 
-			if(
-				$response &&
-				Director::is_https() &&
-				strstr($_SERVER["HTTP_USER_AGENT"], 'MSIE')==true &&
-				strstr($contentDisposition, 'attachment;')==true
-			) {
-				// IE6-IE8 have problems saving files when https and no-cache are used
-				// (http://support.microsoft.com/kb/323308)
-				// Note: this is also fixable by ticking "Do not save encrypted pages to disk" in advanced options.
-				$responseHeaders["Cache-Control"] = "max-age=3, must-revalidate, no-transform";
-				$responseHeaders["Pragma"] = "";
-			} else {
-				$responseHeaders["Cache-Control"] = "no-cache, max-age=0, must-revalidate, no-transform";
-			}
-		}
+				$responseHeaders["Last-Modified"] = self::gmt_date(strtotime($originator->LastEdited));
 
-		if(self::$modification_date && $this->cacheAge > 0) {
-			$responseHeaders["Last-Modified"] = self::gmt_date(self::$modification_date);
+				// Chrome ignores Varies when redirecting back (http://code.google.com/p/chromium/issues/detail?id=79758)
+				// which means that if you log out, you get redirected back to a page which Chrome then checks against 
+				// last-modified (which passes, getting a 304)
+				// when it shouldn't be trying to use that page at all because it's the "logged in" version.
+				// By also using and etag that includes both the modification date and all the varies 
+				// values which we also check against we can catch this and not return a 304
+				$etagParts = array($originator->LastEdited, serialize($_COOKIE));
+				if (isset($_SERVER['HTTP_X_FORWARDED_PROTOCOL'])) $etagParts[] = $_SERVER['HTTP_X_FORWARDED_PROTOCOL'];
+				if (isset($_SERVER['HTTP_USER_AGENT'])) $etagParts[] = $_SERVER['HTTP_USER_AGENT'];
+				if (isset($_SERVER['HTTP_ACCEPT'])) $etagParts[] = $_SERVER['HTTP_ACCEPT'];
 
-			// Chrome ignores Varies when redirecting back (http://code.google.com/p/chromium/issues/detail?id=79758)
-			// which means that if you log out, you get redirected back to a page which Chrome then checks against 
-			// last-modified (which passes, getting a 304)
-			// when it shouldn't be trying to use that page at all because it's the "logged in" version.
-			// By also using and etag that includes both the modification date and all the varies 
-			// values which we also check against we can catch this and not return a 304
-			$etagParts = array(self::$modification_date, serialize($_COOKIE));
-			if (isset($_SERVER['HTTP_X_FORWARDED_PROTOCOL'])) $etagParts[] = $_SERVER['HTTP_X_FORWARDED_PROTOCOL'];
-			if (isset($_SERVER['HTTP_USER_AGENT'])) $etagParts[] = $_SERVER['HTTP_USER_AGENT'];
-			if (isset($_SERVER['HTTP_ACCEPT'])) $etagParts[] = $_SERVER['HTTP_ACCEPT'];
+				$etag = sha1(implode(':', $etagParts));
+				$responseHeaders["ETag"] = $etag;
 
-			$etag = sha1(implode(':', $etagParts));
-			$responseHeaders["ETag"] = $etag;
+				// 304 response detection
+				if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
+					$ifModifiedSince = strtotime(stripslashes($_SERVER['HTTP_IF_MODIFIED_SINCE']));
 
-			// 304 response detection
-			if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
-				$ifModifiedSince = strtotime(stripslashes($_SERVER['HTTP_IF_MODIFIED_SINCE']));
+					// As above, only 304 if the last request had all the same varies values
+					// (or the etag isn't passed as part of the request - but with chrome it always is)
+					$matchesEtag = !isset($_SERVER['HTTP_IF_NONE_MATCH']) || $_SERVER['HTTP_IF_NONE_MATCH'] == $etag;
 
-				// As above, only 304 if the last request had all the same varies values
-				// (or the etag isn't passed as part of the request - but with chrome it always is)
-				$matchesEtag = !isset($_SERVER['HTTP_IF_NONE_MATCH']) || $_SERVER['HTTP_IF_NONE_MATCH'] == $etag;
-
-				if($ifModifiedSince >= self::$modification_date && $matchesEtag) {
-					if($response) {
+					if($ifModifiedSince >= $originator->LastEdited && $matchesEtag) {
 						$response->setStatusCode(304);
 						$response->setBody('');
-					} else {
-						header('HTTP/1.0 304 Not Modified');
-						die();
 					}
 				}
-			}
 
-			$expires = time() + $this->cacheAge;
-			$responseHeaders["Expires"] = self::gmt_date($expires);
+				$expires = time() + $cacheAge;
+				$responseHeaders["Expires"] = self::gmt_date($expires);
+			}
 		}
 
 		if(self::$etag) {
@@ -134,4 +88,5 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 	}
 
 }
+
 
