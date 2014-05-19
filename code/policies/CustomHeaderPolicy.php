@@ -25,11 +25,12 @@ class CustomHeaderPolicy implements ControllerPolicy {
 	public $headers = array();
 
 	/**
+	 * @param Object $originator
 	 * @param SS_HTTPRequest $request
 	 * @param SS_HTTPResponse $response
 	 * @param DataModel $model
 	 */
-	public function applyToResponse(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
+	public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
 		foreach($this->headers as $key => $value) {
 			$response->addHeader($key, $value);
 		}

@@ -6,14 +6,20 @@
 
 class ControllerPolicyRequestFilter implements RequestFilter {
 
-	private $policies = array();
+	/**
+	 * An associative array containing the 'originator' and 'policy' reference.
+	 */
+	private $requestedPolicies = array();
 
-	public function addPolicy($policy) {
-		$this->policies[] = $policy;
+	/**
+	 * Add a policy tuple.
+	 */
+	public function requestPolicy($originator, $policy) {
+		$this->requestedPolicies[] = array('originator' => $originator, 'policy' => $policy);
 	}
 
 	public function clearPolicies() {
-		$this->policies = array();
+		$this->requestedPolicies = array();
 	}
 
 	public function preRequest(SS_HTTPRequest $request, Session $session, DataModel $model) {
@@ -23,10 +29,20 @@ class ControllerPolicyRequestFilter implements RequestFilter {
 
 	}
 
+	/**
+	 * Apply all the requested policies.
+	 */
 	public function postRequest(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
 
-		foreach ($this->policies as $policy) {
-			$policy->applyToResponse($request, $response, $model);
+		foreach ($this->requestedPolicies as $requestedPolicy) {
+
+			$requestedPolicy['policy']->applyToResponse(
+				$requestedPolicy['originator'],
+				$request,
+				$response,
+				$model
+			);
+
 		}
 
 		return true;

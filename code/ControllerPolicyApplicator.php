@@ -44,7 +44,7 @@ class ControllerPolicyApplicator extends Extension {
 		$policies = array_reverse($this->getPolicies());
 
 		foreach($policies as $policy) {
-			$this->requestFilter->addPolicy($policy);
+			$this->requestFilter->requestPolicy($this->owner, $policy);
 		}
 
 	}
