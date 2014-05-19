@@ -17,6 +17,24 @@ the execution and allow us to for example return 304 early. We are working on a
 [pull request](https://github.com/silverstripe/silverstripe-framework/pull/3130) to make it possible to return something
 else than an `SS_HTTP_Exception` from this handler.
 
+### Configuring
+
+Here is a starter configuration you can use for your caching.
+
+	---
+	Name: caching
+	Except:
+	  environment: dev
+	---
+	ControllerPolicyRequestFilter:
+	  ignoreDomainRegexes:
+		- '/.*\.preview.server.com$/'
+
+	[specific options go here - see examples that follow]
+
+If you can, use a separate domain for your CMS. You will then be able to ignore it for caching via
+`ignoreDomainRegexes`.  This will ensure your editors can still see the changes they have published immediately.
+
 ### Example: simple policy
 
 Let's say we want to apply a caching header of max-age 300 to the HomePage only. This module comes with a
