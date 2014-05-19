@@ -90,7 +90,7 @@ custom header. Here is how to achieve this using the config system:
 	  dependencies:
 		Policies:
 		  - '%$LongCachingPolicy'
-	Controller:
+	Page_Controller:
 	  dependencies:
 		Policies:
 		  - '%$ShortCachingPolicy'
@@ -117,13 +117,13 @@ put the following statements:
 		class: CachingPolicy
 		properties:
 		  cacheAge: 900
-	HomePage_Controller:
+	Page_Controller:
 	  dependencies:
 		Policies: '%$GeneralCachingPolicy'
-	HomePage:
+	Page:
 	  extensions:
 		- PageControlledPolicy
 
-Here, applying the PageControlledPolicy extension to the HomePage results in a new MaxAge field being written into the
+Here, applying the `PageControlledPolicy` extension to the `Page` results in a new "MaxAge" field being written into the
 DB, and a new tab available ("Caching") which lets the ADMIN user tweak the cache max-age header (denominated in
 minutes).
