@@ -31,7 +31,7 @@ class PageControlledPolicy extends DataExtension {
 				'be cached for. You will not be able to see updates to this page for at most the specified ' .
 				'amount of minutes. Leave empty to set back to the default configured for your site. Set ' .
 				'to 0 to explicitly disable caching for this page.</p>'),
-			new NumericField('MaxAge', 'Custom cache timeout [minutes]')
+			new TextField('MaxAge', 'Custom cache timeout [minutes]')
 		));
 	}
 
