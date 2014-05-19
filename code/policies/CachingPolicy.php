@@ -31,13 +31,13 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 		// Allow overriding max-age from the object hooked up to the policed controller.
 		if ($originator->hasMethod('getCacheAge')) {
 			$extendedCacheAge = $originator->getCacheAge($cacheAge);
-			if ($extendedCacheAge) $cacheAge = $extendedCacheAge;
+			if ($extendedCacheAge!==null) $cacheAge = $extendedCacheAge;
 		}
 
 		// Same for vary, but probably less useful.
 		if ($originator->hasMethod('getVary')) {
 			$extendedVary = $originator->getVary($vary);
-			if ($extendedVary) $cacheAge = $extendedVary;
+			if ($extendedVary!==null) $vary = $extendedVary;
 		}
 
 		if($cacheAge > 0) {
