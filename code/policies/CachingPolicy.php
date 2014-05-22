@@ -57,7 +57,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 				// By also using and etag that includes both the modification date and all the varies 
 				// values which we also check against we can catch this and not return a 304
 				$etagParts = array($originator->LastEdited, serialize($_COOKIE));
-				if (isset($_SERVER['HTTP_X_FORWARDED_PROTOCOL'])) $etagParts[] = $_SERVER['HTTP_X_FORWARDED_PROTOCOL'];
+				$etagParts[] = Director::is_https() ? 'https' : 'http';
 				if (isset($_SERVER['HTTP_USER_AGENT'])) $etagParts[] = $_SERVER['HTTP_USER_AGENT'];
 				if (isset($_SERVER['HTTP_ACCEPT'])) $etagParts[] = $_SERVER['HTTP_ACCEPT'];
 
