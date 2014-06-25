@@ -1,7 +1,8 @@
 <?php
 /**
- * A rewrite of the default SilverStripe behaviour. Relies on originator object's LastEdited value, instead
- * of HTTP globals. Also allows the consuming code to provide own getCacheAge per object (controller).
+ * A rewrite of the default SilverStripe behaviour allowing more customisation. Consuming code can provide its own
+ * callbacks for providing custom cacheAge, vary and timestamp parameters.
+ *
  * See PageControlledPolicy as an example implementation of such customisation that applies on top of default.
  */
 
@@ -46,9 +47,16 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 			$responseHeaders["Pragma"] = "";
 			$responseHeaders['Vary'] = $vary;
 
-			if($originator->LastEdited) {
+			// Find out when the URI was last modified. Allows customisation, but fall back HTTP timestamp collector.
+			if ($originator->hasMethod('getModificationTimestamp')) {
+				$timestamp = $originator->getModificationTimestamp();
+			} else {
+				$timestamp = HTTP::$modification_date;
+			}
 
-				$responseHeaders["Last-Modified"] = self::gmt_date(strtotime($originator->LastEdited));
+			if($timestamp) {
+
+				$responseHeaders["Last-Modified"] = self::gmt_date($timestamp);
 
 				// Chrome ignores Varies when redirecting back (http://code.google.com/p/chromium/issues/detail?id=79758)
 				// which means that if you log out, you get redirected back to a page which Chrome then checks against 
@@ -56,7 +64,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 				// when it shouldn't be trying to use that page at all because it's the "logged in" version.
 				// By also using and etag that includes both the modification date and all the varies 
 				// values which we also check against we can catch this and not return a 304
-				$etagParts = array($originator->LastEdited, serialize($_COOKIE));
+				$etagParts = array($timestamp, serialize($_COOKIE));
 				$etagParts[] = Director::is_https() ? 'https' : 'http';
 				if (isset($_SERVER['HTTP_USER_AGENT'])) $etagParts[] = $_SERVER['HTTP_USER_AGENT'];
 				if (isset($_SERVER['HTTP_ACCEPT'])) $etagParts[] = $_SERVER['HTTP_ACCEPT'];
@@ -72,7 +80,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 					// (or the etag isn't passed as part of the request - but with chrome it always is)
 					$matchesEtag = !isset($_SERVER['HTTP_IF_NONE_MATCH']) || $_SERVER['HTTP_IF_NONE_MATCH'] == $etag;
 
-					if($ifModifiedSince >= $originator->LastEdited && $matchesEtag) {
+					if($ifModifiedSince >= $timestamp && $matchesEtag) {
 						$response->setStatusCode(304);
 						$response->setBody('');
 					}
