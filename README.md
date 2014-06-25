@@ -8,6 +8,7 @@ It comes with a small selection of policies for implementing caching:
 * CachingPolicy: rewrite of SilverStripe default.
 * CustomHeaderPolicy: allow adding any headers via config system.
 * NoopPolicy: allows zero-ing policies in Controllers extending other Controllers.
+* BackwardsCompatibleCachingPolicy: pretty much verbatim copy of `HTTP::add_cache_headers`.
 
 An example Page extension PageControlledPolicy is also provided utilising CachingPolicy's ability to customise
 max-age based on CMS configuration on specific objects.
@@ -17,25 +18,7 @@ the execution and allow us to for example return 304 early. We are working on a
 [pull request](https://github.com/silverstripe/silverstripe-framework/pull/3130) to make it possible to return something
 else than an `SS_HTTP_Exception` from this handler.
 
-### Configuring
-
-Here is a starter configuration you can use for your caching.
-
-	---
-	Name: caching
-	Except:
-	  environment: dev
-	---
-	ControllerPolicyRequestFilter:
-	  ignoreDomainRegexes:
-		- '/.*\.preview.server.com$/'
-
-	[specific options go here - see examples that follow]
-
-If you can, use a separate domain for your CMS. You will then be able to ignore it for caching via
-`ignoreDomainRegexes`.  This will ensure your editors can still see the changes they have published immediately.
-
-### Example: simple policy
+### Simple policy
 
 Let's say we want to apply a caching header of max-age 300 to the HomePage only. This module comes with a
 `CachingPolicy` which by implementing the `ControllerPolicy` interface can be applied to anything derived from
@@ -45,14 +28,13 @@ Using this policy is done via your project-specific **config.yml**. We configure
 Dependency Injection and apply it directly to `HomePage_Controller`:
 
 	Injector:
-	  MyCachingPolicy:
+	  StandardCachingPolicy:
 		class: CachingPolicy
 		properties:
 		  cacheAge: 300
-		  vary: 'Cookie, X-Forwarded-Protocol, Accept'
 	HomePage_Controller:
 	  dependencies:
-		Policies: '%$MyCachingPolicy'
+		Policies: '%$StandardCachingPolicy'
 
 Every policy will set headers on top of the default framework's `HTTP::add_cache_headers`, which is exactly what we
 want. This allows us to for example customise the `Vary` headers per policy, which were previously hardcoded.
@@ -63,7 +45,18 @@ latter will override the former. HOWEVER this is very unlikely and has nothing t
 `ControllerPolicyApplicator` has been chosen such that the `ModelAsController` and `RootURLController` do not trigger
 application of policies, and it is expected that only one controller will trigger the policy.
 
-### Example: complex policies
+### Ignoring domains
+
+If you wish to exclude some domains from the policies completely, you can do the following:
+
+	ControllerPolicyRequestFilter:
+	  ignoreDomainRegexes:
+		- '/.*\.uat.server.com$/'
+
+This could be useful for example if you wish to disable caching on test servers, or if you are doing aggressive caching
+and want your editors to see changed resources immediately.
+
+### Complex policies via array-merging
 
 This example illustrates the usage of array-merging capability of the config system, which will enable you to simulate
 policy inheritance that will reflect your class diagram.
@@ -107,7 +100,7 @@ the others. This does not mean many Controller policies will trigger - rather, o
 
 Caution: you can either use the array syntax, or value syntax. Choose what's easier.
 
-### Example: PageControlledPolicy
+### PageControlledPolicy
 
 Here is an example of how to implement CMS capability to override the max-age per specific page. In your config file
 put the following statements:
@@ -127,3 +120,4 @@ put the following statements:
 Here, applying the `PageControlledPolicy` extension to the `Page` results in a new "MaxAge" field being written into the
 DB, and a new tab available ("Caching") which lets the ADMIN user tweak the cache max-age header (denominated in
 minutes).
+
