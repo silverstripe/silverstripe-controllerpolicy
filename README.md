@@ -13,11 +13,6 @@ It comes with a small selection of policies for implementing caching:
 An example Page extension PageControlledPolicy is also provided utilising CachingPolicy's ability to customise
 max-age based on CMS configuration on specific objects.
 
-Note that at the moment the `preRequest` filters are not too useful because they don't allow us to short-circuit
-the execution and allow us to for example return 304 early. We are working on a
-[pull request](https://github.com/silverstripe/silverstripe-framework/pull/3130) to make it possible to return something
-else than an `SS_HTTP_Exception` from this handler.
-
 ### Simple policy
 
 Let's say we want to apply a caching header of max-age 300 to the HomePage only. This module comes with a
@@ -39,12 +34,6 @@ Dependency Injection and apply it directly to `HomePage_Controller`:
 Every policy will set headers on top of the default framework's `HTTP::add_cache_headers`, which is exactly what we
 want. This allows us to for example customise the `Vary` headers per policy, which were previously hardcoded.
 
-Note: the policies will be applied in the Controller order of initialisation, so if multiple Controllers are invoked the
-latter will override the former. HOWEVER this is very unlikely and has nothing to do with the inheritance of classes
-(see next example).  This relates to how the Controller stack is invoked in SilverStripe. The extension point in
-`ControllerPolicyApplicator` has been chosen such that the `ModelAsController` and `RootURLController` do not trigger
-application of policies, and it is expected that only one controller will trigger the policy.
-
 ### Ignoring domains
 
 If you wish to exclude some domains from the policies completely, you can do the following:
@@ -55,6 +44,41 @@ If you wish to exclude some domains from the policies completely, you can do the
 
 This could be useful for example if you wish to disable caching on test servers, or if you are doing aggressive caching
 and want your editors to see changed resources immediately.
+
+### Overriding policies
+
+If you apply a policy to a certain `Controller` it will apply to all inheriting controllers too. For example if we have `FooPage_Controller extends Page_Controller` then the `Page_Controller` policy will also affect the `FooPage_Controller`.
+
+You can break that chain easily by applying a policy to the inheriting controller as long as you are not using arrays for configuration (which you ordinarily wouldn't be - but see the "Complex policies" chapter below):
+
+	FooPage_Controller:
+ 	  dependencies:
+	    Policies: '%$NoopPolicy'
+
+The `NoopPolicy` is a policy that does nothing, so you can use it to "disable" certain controllers. This is useful for example for GET-based multi-step forms (via the [silverstripe-multiform](https://github.com/silverstripe/silverstripe-multiform)) module, where steps are traversed via GET requests, and URIs don't differ - hence preventing your from actually progressing through the form.
+
+Note that you can use any other policy to override the existing one - it doesn't need to be `NoopPolicy`.
+
+### PageControlledPolicy
+
+Here is an example of how to implement CMS capability to override the max-age per specific page. In your config file
+put the following statements:
+
+	Injector:
+	  GeneralCachingPolicy:
+		class: CachingPolicy
+		properties:
+		  cacheAge: 900
+	Page_Controller:
+	  dependencies:
+		Policies: '%$GeneralCachingPolicy'
+	Page:
+	  extensions:
+		- PageControlledPolicy
+
+Here, applying the `PageControlledPolicy` extension to the `Page` results in a new "MaxAge" field being written into the
+DB, and a new tab available ("Caching") which lets the ADMIN user tweak the cache max-age header (denominated in
+minutes).
 
 ### Complex policies via array-merging
 
@@ -100,24 +124,15 @@ the others. This does not mean many Controller policies will trigger - rather, o
 
 Caution: you can either use the array syntax, or value syntax. Choose what's easier.
 
-### PageControlledPolicy
+### Developer notes
 
-Here is an example of how to implement CMS capability to override the max-age per specific page. In your config file
-put the following statements:
+At the moment the `preRequest` filters are not too useful because they don't allow us to short-circuit
+the execution and allow us to for example return 304 early. We are working on a
+[pull request](https://github.com/silverstripe/silverstripe-framework/pull/3130) to make it possible to return something
+else than an `SS_HTTP_Exception` from this handler.
 
-	Injector:
-	  GeneralCachingPolicy:
-		class: CachingPolicy
-		properties:
-		  cacheAge: 900
-	Page_Controller:
-	  dependencies:
-		Policies: '%$GeneralCachingPolicy'
-	Page:
-	  extensions:
-		- PageControlledPolicy
-
-Here, applying the `PageControlledPolicy` extension to the `Page` results in a new "MaxAge" field being written into the
-DB, and a new tab available ("Caching") which lets the ADMIN user tweak the cache max-age header (denominated in
-minutes).
-
+Another thing is that the policies will be applied in the Controller order of initialisation, so if multiple Controllers are invoked the
+latter will override the former. HOWEVER this is very unlikely and has nothing to do with the inheritance of classes
+(see next example).  This relates to how the Controller stack is invoked in SilverStripe. The extension point in
+`ControllerPolicyApplicator` has been chosen such that the `ModelAsController` and `RootURLController` do not trigger
+application of policies, and it is expected that only one controller will trigger the policy.
