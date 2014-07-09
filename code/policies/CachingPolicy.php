@@ -22,7 +22,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 	 *		clustering in some way, otherwise this will be an equivalent to disabling caching as there
 	 *		is a lot of different UAs in the wild.
 	 */
-	public $vary = 'Cookie, X-Forwarded-Protocol, Accept';
+	public $vary = 'Cookie, X-Forwarded-Protocol';
 
 	public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
 		$cacheAge = $this->cacheAge;
