@@ -1,8 +1,8 @@
 {
-	"name": "mateusz/controllerpolicy",
-	"description": "SilverStripe module providing per-controller RequestFilter policies.",
+	"name": "silverstripe/controllerpolicy",
+	"description": "SilverStripe module providing a framework for per-controller policies. Includes a caching policy implementation that's more flexible than the Framework's default.",
 	"type": "silverstripe-module",
-	"keywords": ["silverstripe"],
+	"keywords": ["silverstripe", "policy", "caching"],
 	"license": "BSD-3-Clause",
 	"authors": [
 		{
