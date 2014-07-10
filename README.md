@@ -61,7 +61,7 @@ Any URL which content depends on an impulse from the visitor should use Vary hea
 Here is a table of some more obvious _Vary_ headers. `CachingPolicy` uses a relatively safe combination of `Cookie, X-Forwarded-Protocol`. Keep in mind the more of these you specify, the more partitioned the cache, which will nullify potential gains. Use as few as you are confident with.
 
 | Vary on | Description | Cache partitioning impact |
-| - | - | - |
+| ---- | ---- | ---- |
 | Accept-Encoding | Vary on content deflate method - Apache will deliver different content depending on accepted encoding. Automatically added by Apache mod_header. | low |
 | Cookie | Vary on user session. Pretty much partitions the responses into generic and personalised. Note that some special handling is added to the cluster-local cache to drop off the frontend-only cookies such as __utma. A sensible addition. | low |
 | X-Forwarded-Protocol | Vary on protocol such as http or https - use if you serve different responses for your SSL users from a server behind a reverse-proxy - the difference could be for example the "BaseURL". A sensible addition. | low |
