@@ -157,7 +157,6 @@ the execution and allow us to for example return 304 early. We are working on a
 else than an `SS_HTTP_Exception` from this handler.
 
 Another thing is that the policies will be applied in the Controller order of initialisation, so if multiple Controllers are invoked the
-latter will override the former. HOWEVER this is very unlikely and has nothing to do with the inheritance of classes
-(see next example).  This relates to how the Controller stack is invoked in SilverStripe. The extension point in
+latter will override the former. HOWEVER this is very unlikely and has nothing to do with the inheritance of classes. This relates to how the Controller stack is invoked in SilverStripe. The extension point in
 `ControllerPolicyApplicator` has been chosen such that the `ModelAsController` and `RootURLController` do not trigger
 application of policies, and it is expected that only one controller will trigger the policy.
