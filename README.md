@@ -45,6 +45,31 @@ If you wish to exclude some domains from the policies completely, you can do the
 This could be useful for example if you wish to disable caching on test servers, or if you are doing aggressive caching
 and want your editors to see changed resources immediately.
 
+### Vary headers
+
+_CachingPolicy_ also allows customisation of _Vary_ headers through the config system:
+
+	Injector:
+	  StandardCachingPolicy:
+		class: CachingPolicy
+		properties:
+		  cacheAge: 300
+		  vary: 'Cookie, X-Forwarded-Protocol, Accept-Language'
+
+Any URL which content depends on an impulse from the visitor should use Vary header to encode this dependency, otherwise caches might serve wrong content to the wrong user (possibly even confidential data!).
+
+Here is a table of some more obvious _Vary_ headers. `CachingPolicy` uses a relatively safe combination of `Cookie, X-Forwarded-Protocol`. Keep in mind the more of these you specify, the more partitioned the cache, which will nullify potential gains. Use as few as you are confident with.
+
+| Vary on | Description | Cache partitioning impact |
+| - | - | - |
+| Accept-Encoding | Vary on content deflate method - Apache will deliver different content depending on accepted encoding. Automatically added by Apache mod_header. | low |
+| Cookie | Vary on user session. Pretty much partitions the responses into generic and personalised. Note that some special handling is added to the cluster-local cache to drop off the frontend-only cookies such as __utma. A sensible addition. | low |
+| X-Forwarded-Protocol | Vary on protocol such as http or https - use if you serve different responses for your SSL users from a server behind a reverse-proxy - the difference could be for example the "BaseURL". A sensible addition. | low |
+| X-Forwarded-Proto | A variation on X-Forwarded-Protocol, see above. | low |
+| Accept | Vary on the response format. Some URLs, especially the API endpoints, can produce different output depending on what the user accepts: i.e. JSON vs. XML. Avoid if possible, and instead encode the content type in the URL. | medium |
+| Accept-Language | Vary on the accepted language, if you are providing different language content depending on the user browser's setting. Avoid if possible, and instead encode the language in the URL. | medium |
+| User-Agent | Vary on the user's device. There is so many user strings around this will effectively disable your cache. Avoid at all costs, and instead use responsive themes. | extreme |
+
 ### Overriding policies
 
 If you apply a policy to a certain `Controller` it will apply to all inheriting controllers too. For example if we have `FooPage_Controller extends Page_Controller` then the `Page_Controller` policy will also affect the `FooPage_Controller`.
