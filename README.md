@@ -63,9 +63,9 @@ Here is a table of some more obvious _Vary_ headers. `CachingPolicy` uses a rela
 | Vary on | Description | Cache partitioning impact |
 | ---- | ---- | ---- |
 | Accept-Encoding | Vary on content deflate method - Apache will deliver different content depending on accepted encoding. Automatically added by Apache mod_header. | low |
-| Cookie | Vary on user session. Pretty much partitions the responses into generic and personalised. Note that some special handling is added to the cluster-local cache to drop off the frontend-only cookies such as __utma. A sensible addition. | low |
-| X-Forwarded-Protocol | Vary on protocol such as http or https - use if you serve different responses for your SSL users from a server behind a reverse-proxy - the difference could be for example the "BaseURL". A sensible addition. | low |
-| X-Forwarded-Proto | A variation on X-Forwarded-Protocol, see above. | low |
+| Cookie | Vary on user session. Pretty much partitions the responses into generic and personalised. Note that for this to work well, the cache needs to purge frontend-only cookies such as __utma from the requests. A sensible addition. | low |
+| X-Forwarded-Protocol | Vary on protocol such as http or https - use when the cache is behind a reverse-proxy, as there is often a difference in "BaseURL" which is not reflected in the URL the cache sees. A sensible addition. | low |
+| X-Forwarded-Proto | A variation on X-Forwarded-Protocol, choose one appropriate to your reverse-proxy. | low |
 | Accept | Vary on the response format. Some URLs, especially the API endpoints, can produce different output depending on what the user accepts: i.e. JSON vs. XML. Avoid if possible, and instead encode the content type in the URL. | medium |
 | Accept-Language | Vary on the accepted language, if you are providing different language content depending on the user browser's setting. Avoid if possible, and instead encode the language in the URL. | medium |
 | User-Agent | Vary on the user's device. There is so many user strings around this will effectively disable your cache. Avoid at all costs, and instead use responsive themes. | extreme |
