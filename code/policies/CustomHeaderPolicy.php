@@ -13,7 +13,8 @@
  *         Custom-Header: "Hello"
  * HomePage_Controller:
  *   dependencies:
- *     Policy: '%$GeneralPolicy'
+ *     Policies:
+ *       - '%$GeneralPolicy'
  *   extensions:
  *     - ControllerPolicyApplicator
  */
