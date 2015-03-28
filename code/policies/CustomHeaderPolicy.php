@@ -1,6 +1,7 @@
 <?php
 /**
- * This policy can be used as a writing any http header value.
+ * This policy can be used to write or delete arbitrary headers. Set the header to empty string ("")
+ * to suppress that header.
  *
  * Configuration:
  *
@@ -11,6 +12,7 @@
  *       headers:
  *         Cache-Control: "public, max-age=600, no-transform"
  *         Custom-Header: "Hello"
+ *         Vary: ""
  * HomePage_Controller:
  *   dependencies:
  *     Policies:
@@ -33,7 +35,11 @@ class CustomHeaderPolicy implements ControllerPolicy {
 	 */
 	public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
 		foreach($this->headers as $key => $value) {
-			$response->addHeader($key, $value);
+			if ($value!=="") {
+				$response->addHeader($key, $value);
+			} else {
+				$response->removeHeader($key);
+			}
 		}
 	}
 }
