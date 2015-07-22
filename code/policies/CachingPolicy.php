@@ -59,10 +59,10 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 				$responseHeaders["Last-Modified"] = self::gmt_date($timestamp);
 
 				// Chrome ignores Varies when redirecting back (http://code.google.com/p/chromium/issues/detail?id=79758)
-				// which means that if you log out, you get redirected back to a page which Chrome then checks against 
+				// which means that if you log out, you get redirected back to a page which Chrome then checks against
 				// last-modified (which passes, getting a 304)
 				// when it shouldn't be trying to use that page at all because it's the "logged in" version.
-				// By also using and etag that includes both the modification date and all the varies 
+				// By also using and etag that includes both the modification date and all the varies
 				// values which we also check against we can catch this and not return a 304
 				$etagParts = array($timestamp, serialize($_COOKIE));
 				$etagParts[] = Director::is_https() ? 'https' : 'http';
@@ -94,7 +94,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 		if(self::$etag) {
 			$responseHeaders['ETag'] = self::$etag;
 		}
-		
+
 		// Now that we've generated them, either output them or attach them to the SS_HTTPResponse as appropriate
 		foreach($responseHeaders as $k => $v) {
 			$response->addHeader($k, $v);
