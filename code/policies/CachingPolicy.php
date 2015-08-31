@@ -44,9 +44,11 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 		if($cacheAge > 0) {
 			// Note: must-revalidate means that the cache must revalidate AFTER the entry has gone stale.
 			$responseHeaders["Cache-Control"] = "max-age=" . $cacheAge . ", must-revalidate, no-transform";
+			
 			if(isset($responseHeaders["Pragma"])) {
 			 	unset($responseHeaders["Pragma"]);
-			 }
+			}
+			
 			$responseHeaders['Vary'] = $vary;
 
 			// Find out when the URI was last modified. Allows customisation, but fall back HTTP timestamp collector.

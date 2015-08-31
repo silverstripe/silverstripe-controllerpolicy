@@ -63,9 +63,11 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy 
 
 		if($cacheAge > 0) {
 			$responseHeaders["Cache-Control"] = "max-age=" . $cacheAge . ", must-revalidate, no-transform";
+			
 			if(isset($responseHeaders["Pragma"])) {
-			 	unset($responseHeaders["Pragma"]);
-			 }
+				unset($responseHeaders["Pragma"]);
+			}
+
 			$responseHeaders['Vary'] = $this->vary;
 		}
 		else {
@@ -85,6 +87,7 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy 
 				// (http://support.microsoft.com/kb/323308)
 				// Note: this is also fixable by ticking "Do not save encrypted pages to disk" in advanced options.
 				$responseHeaders["Cache-Control"] = "max-age=3, must-revalidate, no-transform";
+				
 				if(isset($responseHeaders["Pragma"])) {
 					unset($responseHeaders["Pragma"]);
 				}
