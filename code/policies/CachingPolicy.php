@@ -24,6 +24,12 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 	 */
 	public $vary = 'Cookie, X-Forwarded-Protocol';
 
+	/**
+	 * @param Object $originator
+	 * @param SS_HTTPRequest $request
+	 * @param SS_HTTPResponse $response
+	 * @param DataModel $model
+	 */
 	public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
 		$cacheAge = $this->cacheAge;
 		$vary = $this->vary;
@@ -70,7 +76,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 				if (isset($_SERVER['HTTP_ACCEPT'])) $etagParts[] = $_SERVER['HTTP_ACCEPT'];
 
 				$etag = sha1(implode(':', $etagParts));
-				$responseHeaders["ETag"] = $etag;
+				$responseHeaders['ETag'] = $etag;
 
 				// 304 response detection
 				if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
@@ -87,7 +93,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 				}
 
 				$expires = time() + $cacheAge;
-				$responseHeaders["Expires"] = self::gmt_date($expires);
+				$responseHeaders['Expires'] = self::gmt_date($expires);
 			}
 		}
 
@@ -100,7 +106,4 @@ class CachingPolicy extends HTTP implements ControllerPolicy {
 			$response->addHeader($k, $v);
 		}
 	}
-
 }
-
-

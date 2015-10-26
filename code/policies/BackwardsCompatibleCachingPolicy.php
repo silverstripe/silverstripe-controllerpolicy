@@ -40,6 +40,11 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy 
 
 	/**
 	 * Copied and adjusted from HTTP::add_cache_headers
+	 *
+	 * @param Object $originator
+	 * @param SS_HTTPRequest $request
+	 * @param SS_HTTPResponse $response
+	 * @param DataModel $model
 	 */
 	public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
 		$cacheAge = $this->cacheAge;
@@ -138,6 +143,4 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy 
 			$response->addHeader($k, $v);
 		}
 	}
-
 }
-

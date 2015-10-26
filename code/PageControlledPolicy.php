@@ -5,13 +5,17 @@
  * to the object related to the policed controller.
  */
 class PageControlledPolicy extends DataExtension {
-
+	/**
+	 * @var array
+	 */
 	private static $db = array(
 		'MaxAge' => 'Varchar'
 	);
 
 	/**
 	 * Extension point for the CachingPolicy.
+	 *
+	 * @param int $cacheAge
 	 */
 	public function getCacheAge($cacheAge) {
 		if ($this->owner->MaxAge!='') {
@@ -19,6 +23,9 @@ class PageControlledPolicy extends DataExtension {
 		}
 	}
 
+	/**
+	 * @param  FieldList $fields
+	 */
 	public function updateCMSFields(FieldList $fields) {
 		// Only admins are allowed to modify this.
 		$member = Member::currentUser();
