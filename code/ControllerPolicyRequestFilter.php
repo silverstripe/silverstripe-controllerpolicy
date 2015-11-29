@@ -11,17 +11,20 @@ class ControllerPolicyRequestFilter implements RequestFilter {
 	 */
 	private static $ignoreDomainRegexes = array();
 
-
 	/**
 	 * An associative array containing the 'originator' and 'policy' reference.
+	 *
+	 * @var array
 	 */
 	private $requestedPolicies = array();
 
 	/**
 	 * Check if the given domain is on the list of ignored domains.
+	 *
+	 * @param string $domain
+	 * @return boolean
 	 */
 	public function isIgnoredDomain($domain) {
-
 		if ($ignoreRegexes = Config::inst()->get('ControllerPolicyRequestFilter', 'ignoreDomainRegexes')) {
 			foreach ($ignoreRegexes as $ignore) {
 				if (preg_match($ignore, $domain)>0) return true;
@@ -29,7 +32,6 @@ class ControllerPolicyRequestFilter implements RequestFilter {
 		}
 
 		return false;
-
 	}
 
 	/**
@@ -44,35 +46,33 @@ class ControllerPolicyRequestFilter implements RequestFilter {
 	}
 
 	public function preRequest(SS_HTTPRequest $request, Session $session, DataModel $model) {
-
 		// No-op, we don't know the controller at this stage.
 		return true;
-
 	}
 
 	/**
 	 * Apply all the requested policies.
+	 *
+	 * @param  SS_HTTPRequest  $request
+	 * @param  SS_HTTPResponse $response
+	 * @param  DataModel       $model
+	 * @return boolean
 	 */
 	public function postRequest(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
-
-		// Ingore by regexes.
+		// Ignore by regexes.
 		if ($this->isIgnoredDomain($_SERVER['HTTP_HOST'])) {
 			return true;
 		}
 
 		foreach ($this->requestedPolicies as $requestedPolicy) {
-
 			$requestedPolicy['policy']->applyToResponse(
 				$requestedPolicy['originator'],
 				$request,
 				$response,
 				$model
 			);
-
 		}
 
 		return true;
-
 	}
-
 }

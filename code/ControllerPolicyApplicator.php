@@ -8,24 +8,30 @@
  * latter will override the former.
  */
 class ControllerPolicyApplicator extends Extension {
-
+	/**
+	 * @var RequestFilter
+	 */
 	private $requestFilter;
 
-	function setRequestFilter($filter) {
+	/**
+	 * @param RequestFilter $filter
+	 */
+	public function setRequestFilter($filter) {
 		$this->requestFilter = $filter;
 	}
 
 	/**
 	 * $policy injected to $this->owner
+	 *
+	 * @param mixed $policies
 	 */
-
-	function setPolicies($policies) {
+	public function setPolicies($policies) {
 		if (!is_array($policies)) $policies = array($policies);
 
 		$this->owner->policies = $policies;
 	}
 
-	function getPolicies() {
+	public function getPolicies() {
 		if (isset($this->owner) && isset($this->owner->policies)) {
 			return $this->owner->policies;
 		}
@@ -35,7 +41,7 @@ class ControllerPolicyApplicator extends Extension {
 	 * Register the requested policies with the global request filter. This doesn't mean the policies will be
 	 * executed at this point - it will rather be delayed until the RequestProcessor::postRequest runs.
 	 */
-	function onAfterInit() {
+	public function onAfterInit() {
 		if (!$this->getPolicies()) return;
 
 		// Flip the policy array, so the first element in the array is the one applying last.
@@ -46,7 +52,5 @@ class ControllerPolicyApplicator extends Extension {
 		foreach($policies as $policy) {
 			$this->requestFilter->requestPolicy($this->owner, $policy);
 		}
-
 	}
-
 }
