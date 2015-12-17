@@ -20,26 +20,28 @@
  *   extensions:
  *     - ControllerPolicyApplicator
  */
-class CustomHeaderPolicy implements ControllerPolicy {
+class CustomHeaderPolicy implements ControllerPolicy
+{
 
-	/**
-	 * @var array
-	 */
-	public $headers = array();
+    /**
+     * @var array
+     */
+    public $headers = array();
 
-	/**
-	 * @param Object $originator
-	 * @param SS_HTTPRequest $request
-	 * @param SS_HTTPResponse $response
-	 * @param DataModel $model
-	 */
-	public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model) {
-		foreach($this->headers as $key => $value) {
-			if ($value!=="") {
-				$response->addHeader($key, $value);
-			} else {
-				$response->removeHeader($key);
-			}
-		}
-	}
+    /**
+     * @param Object $originator
+     * @param SS_HTTPRequest $request
+     * @param SS_HTTPResponse $response
+     * @param DataModel $model
+     */
+    public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model)
+    {
+        foreach ($this->headers as $key => $value) {
+            if ($value!=="") {
+                $response->addHeader($key, $value);
+            } else {
+                $response->removeHeader($key);
+            }
+        }
+    }
 }
