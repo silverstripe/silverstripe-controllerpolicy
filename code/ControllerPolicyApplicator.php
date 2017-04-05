@@ -38,7 +38,7 @@ class ControllerPolicyApplicator extends Extension
 
     public function getPolicies()
     {
-        if (isset($this->owner) && isset($this->owner->policies)) {
+        if (isset($this->owner) && property_exists($this->owner, 'policies')) {
             return $this->owner->policies;
         }
     }
