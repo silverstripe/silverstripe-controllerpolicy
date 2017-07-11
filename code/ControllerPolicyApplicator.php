@@ -15,6 +15,11 @@ class ControllerPolicyApplicator extends Extension
     private $requestFilter;
 
     /**
+     * @var array
+     */
+    protected $policies = array();
+
+    /**
      * @param RequestFilter $filter
      */
     public function setRequestFilter($filter)
@@ -23,7 +28,7 @@ class ControllerPolicyApplicator extends Extension
     }
 
     /**
-     * $policy injected to $this->owner
+     * Set the policies for this controller. Will set, not add to the list.
      *
      * @param mixed $policies
      */
@@ -33,14 +38,17 @@ class ControllerPolicyApplicator extends Extension
             $policies = array($policies);
         }
 
-        $this->owner->policies = $policies;
+        $this->policies = $policies;
     }
 
+    /**
+     * Get the policies for this controller
+     *
+     * @return array
+     */
     public function getPolicies()
     {
-        if (isset($this->owner) && property_exists($this->owner, 'policies')) {
-            return $this->owner->policies;
-        }
+        return $this->policies;
     }
 
     /**
