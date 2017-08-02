@@ -1,5 +1,7 @@
 # Controller Policy
 
+[![Build Status](https://travis-ci.org/silverstripe-archive/silverstripe-controllerpolicy.svg)](https://travis-ci.org/silverstripe-archive/silverstripe-controllerpolicy)
+
 This module has been designed to provide the ability to configure response policies that apply per specific
 Controller.
 
