@@ -1,16 +1,16 @@
 {
-	"name": "silverstripe/controllerpolicy",
-	"description": "SilverStripe module providing a framework for per-controller policies. Includes a caching policy implementation that's more flexible than the Framework's default.",
-	"type": "silverstripe-module",
-	"keywords": ["silverstripe", "policy", "caching"],
-	"license": "BSD-3-Clause",
-	"authors": [
-		{
-			"name": "Mateusz Uzdowski",
-			"email": "mateusz@silverstripe.com"
-		}
-	],
-	"require": {
-		"silverstripe/framework": "~3.1"
-	}
+    "name": "silverstripe/controllerpolicy",
+    "description": "SilverStripe module providing a framework for per-controller policies. Includes a caching policy implementation that's more flexible than the Framework's default.",
+    "type": "silverstripe-module",
+    "keywords": ["silverstripe", "policy", "caching"],
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Mateusz Uzdowski",
+            "email": "mateusz@silverstripe.com"
+        }
+    ],
+    "require": {
+        "silverstripe/framework": "~3.1"
+    }
 }
