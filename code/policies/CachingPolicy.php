@@ -56,7 +56,13 @@ class CachingPolicy extends HTTP implements ControllerPolicy
         if ($cacheAge > 0) {
             // Note: must-revalidate means that the cache must revalidate AFTER the entry has gone stale.
             $responseHeaders["Cache-Control"] = "max-age=" . $cacheAge . ", must-revalidate, no-transform";
+
+            // Set empty pragma to avoid PHP's session_cache_limiter adding conflicting caching information,
+            // defaulting to "nocache" on most PHP configurations (see http://php.net/session_cache_limiter).
+            // Since it's a deprecated HTTP 1.0 option, all modern HTTP clients and proxies should
+            // prefer the caching information indicated through the "Cache-Control" header.
             $responseHeaders["Pragma"] = "";
+
             $responseHeaders['Vary'] = $vary;
 
             // Find out when the URI was last modified. Allows customisation, but fall back HTTP timestamp collector.
