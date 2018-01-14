@@ -67,9 +67,11 @@ class ControllerPolicyRequestFilter implements RequestFilter
      */
     public function postRequest(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model)
     {
-        // Ignore by regexes.
-        if ($this->isIgnoredDomain($_SERVER['HTTP_HOST'])) {
-            return true;
+        if (!Director::is_cli() && isset($_SERVER['HTTP_HOST'])) {
+            // Ignore by regexes.
+            if ($this->isIgnoredDomain($_SERVER['HTTP_HOST'])) {
+                return true;
+            }
         }
 
         foreach ($this->requestedPolicies as $requestedPolicy) {
