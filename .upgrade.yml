@@ -1,0 +1,13 @@
+mappings:
+  ControllerPolicyApplicator: SilverStripe\ControllerPolicy\ControllerPolicyApplicator
+  ControllerPolicy: SilverStripe\ControllerPolicy\ControllerPolicy
+  PageControlledPolicy: SilverStripe\ControllerPolicy\PageControlledPolicy
+  ControllerPolicyRequestFilter: SilverStripe\ControllerPolicy\ControllerPolicyRequestFilter
+  CachingPolicyTest: SilverStripe\ControllerPolicy\Tests\CachingPolicyTest
+  Unrelated_Controller: SilverStripe\ControllerPolicy\Tests\Unrelated_Controller
+  CachingPolicy_Controller: SilverStripe\ControllerPolicy\Tests\CachingPolicy_Controller
+  CallbackCachingPolicy_Controller: SilverStripe\ControllerPolicy\Tests\CallbackCachingPolicy_Controller
+  NoopPolicy: SilverStripe\ControllerPolicy\Policies\NoopPolicy
+  CachingPolicy: SilverStripe\ControllerPolicy\Policies\CachingPolicy
+  BackwardsCompatibleCachingPolicy: SilverStripe\ControllerPolicy\Policies\BackwardsCompatibleCachingPolicy
+  CustomHeaderPolicy: SilverStripe\ControllerPolicy\Policies\CustomHeaderPolicy

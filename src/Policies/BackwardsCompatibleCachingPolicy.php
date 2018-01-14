@@ -1,4 +1,13 @@
 <?php
+
+namespace SilverStripe\ControllerPolicy\Policies;
+
+use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTP;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\HTTPResponse;
+use SilverStripe\ControllerPolicy\ControllerPolicy;
+
 /**
  * Caching policy that replicates what SilverStripe Framework currently does in HTTP::set_cache_headers
  * as close as possible, but that is slightly more configurable via cacheAge and vary config options.
@@ -34,20 +43,19 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy
 
     /**
      * @var string $vary Vary string to add. Do not add user-agent unless you vary on it and you have configured
-     *	user-agent clustering in some way, otherwise this will be an equivalent to disabling caching as there
-     *	is a lot of different UAs in the wild.
+     *  user-agent clustering in some way, otherwise this will be an equivalent to disabling caching as there
+     *  is a lot of different UAs in the wild.
      */
     public $vary = 'Cookie, X-Forwarded-Protocol, User-Agent, Accept';
 
     /**
      * Copied and adjusted from HTTP::add_cache_headers
      *
-     * @param Object $originator
-     * @param SS_HTTPRequest $request
-     * @param SS_HTTPResponse $response
-     * @param DataModel $model
+     * @param object $originator
+     * @param HTTPRequest $request
+     * @param HTTPResponse $response
      */
-    public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model)
+    public function applyToResponse($originator, HTTPRequest $request, HTTPResponse $response)
     {
         $cacheAge = $this->cacheAge;
 
@@ -89,11 +97,10 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy
                 }
             }
 
-            if (
-                $response &&
-                Director::is_https() &&
-                strstr($_SERVER["HTTP_USER_AGENT"], 'MSIE')==true &&
-                strstr($contentDisposition, 'attachment;')==true
+            if ($response
+                && Director::is_https()
+                && strstr($_SERVER["HTTP_USER_AGENT"], 'MSIE') == true
+                && strstr($contentDisposition, 'attachment;') == true
             ) {
                 // IE6-IE8 have problems saving files when https and no-cache are used
                 // (http://support.microsoft.com/kb/323308)

@@ -1,14 +1,16 @@
 ---
 Name: controllerpolicy
 ---
-Injector:
-  RequestProcessor:
+SilverStripe\Core\Injector\Injector:
+  SilverStripe\Control\RequestProcessor:
     properties:
       filters:
-        - '%$ControllerPolicyRequestFilter'
-ControllerPolicyApplicator:
+        - '%$SilverStripe\ControllerPolicy\ControllerPolicyRequestFilter'
+
+SilverStripe\ControllerPolicy\ControllerPolicyApplicator:
   dependencies:
-    RequestFilter: '%$ControllerPolicyRequestFilter'
-Controller:
+    SilverStripe\Control\RequestFilter: '%$SilverStripe\ControllerPolicy\ControllerPolicyRequestFilter'
+
+SilverStripe\Control\Controller:
   extensions:
-    - ControllerPolicyApplicator
+    - SilverStripe\ControllerPolicy\ControllerPolicyApplicator

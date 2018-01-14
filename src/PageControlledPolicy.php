@@ -1,4 +1,14 @@
 <?php
+
+namespace SilverStripe\ControllerPolicy;
+
+use SilverStripe\Forms\FieldList;
+use SilverStripe\Security\Member;
+use SilverStripe\Security\Permission;
+use SilverStripe\Forms\LiteralField;
+use SilverStripe\Forms\TextField;
+use SilverStripe\ORM\DataExtension;
+
 /**
  * This extension leverages the CachingPolicy's ability to customise the max-age per originator.
  * The configuration option is surfaced to the CMS UI. The extension needs to be added

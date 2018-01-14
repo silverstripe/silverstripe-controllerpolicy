@@ -1,12 +1,20 @@
 <?php
+
+namespace SilverStripe\ControllerPolicy;
+
+use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Control\RequestFilter;
+use SilverStripe\Control\Session;
+use SilverStripe\Core\Config\Config;
+
 /**
  * This request filter accepts registrations of policies to be applied at the end of the control pipeline.
  * The policies will be applied in the order they are added, and will override HTTP::add_cache_headers.
  */
-
 class ControllerPolicyRequestFilter implements RequestFilter
 {
-
     /**
      * @var array $ignoreDomainRegexes Force some domains to be ignored. Accepts one wildcard at the beginning.
      */
@@ -27,7 +35,7 @@ class ControllerPolicyRequestFilter implements RequestFilter
      */
     public function isIgnoredDomain($domain)
     {
-        if ($ignoreRegexes = Config::inst()->get('ControllerPolicyRequestFilter', 'ignoreDomainRegexes')) {
+        if ($ignoreRegexes = Config::inst()->get(ControllerPolicyRequestFilter::class, 'ignoreDomainRegexes')) {
             foreach ($ignoreRegexes as $ignore) {
                 if (preg_match($ignore, $domain)>0) {
                     return true;
@@ -51,7 +59,7 @@ class ControllerPolicyRequestFilter implements RequestFilter
         $this->requestedPolicies = array();
     }
 
-    public function preRequest(SS_HTTPRequest $request, Session $session, DataModel $model)
+    public function preRequest(HTTPRequest $request, Session $session)
     {
         // No-op, we don't know the controller at this stage.
         return true;
@@ -60,12 +68,11 @@ class ControllerPolicyRequestFilter implements RequestFilter
     /**
      * Apply all the requested policies.
      *
-     * @param  SS_HTTPRequest  $request
-     * @param  SS_HTTPResponse $response
-     * @param  DataModel       $model
+     * @param  HTTPRequest  $request
+     * @param  HTTPResponse $response
      * @return boolean
      */
-    public function postRequest(SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model)
+    public function postRequest(HTTPRequest $request, HTTPResponse $response)
     {
         if (!Director::is_cli() && isset($_SERVER['HTTP_HOST'])) {
             // Ignore by regexes.
@@ -78,8 +85,7 @@ class ControllerPolicyRequestFilter implements RequestFilter
             $requestedPolicy['policy']->applyToResponse(
                 $requestedPolicy['originator'],
                 $request,
-                $response,
-                $model
+                $response
             );
         }
 

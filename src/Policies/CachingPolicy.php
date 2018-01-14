@@ -1,4 +1,13 @@
 <?php
+
+namespace SilverStripe\ControllerPolicy\Policies;
+
+use SilverStripe\Control\Director;
+use SilverStripe\Control\HTTP;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\HTTPResponse;
+use SilverStripe\ControllerPolicy\ControllerPolicy;
+
 /**
  * A rewrite of the default SilverStripe behaviour allowing more customisation. Consuming code can provide its own
  * callbacks for providing custom cacheAge, vary and timestamp parameters.
@@ -19,19 +28,18 @@ class CachingPolicy extends HTTP implements ControllerPolicy
 
     /**
      * @var string $vary Vary string to add if configuration is not available from the originator.
-     *		Note on vary headers: Do not add user-agent unless you vary on it AND you have configured user-agent
-     *		clustering in some way, otherwise this will be an equivalent to disabling caching as there
-     *		is a lot of different UAs in the wild.
+     *      Note on vary headers: Do not add user-agent unless you vary on it AND you have configured user-agent
+     *      clustering in some way, otherwise this will be an equivalent to disabling caching as there
+     *      is a lot of different UAs in the wild.
      */
     public $vary = 'Cookie, X-Forwarded-Protocol';
 
     /**
-     * @param Object $originator
-     * @param SS_HTTPRequest $request
-     * @param SS_HTTPResponse $response
-     * @param DataModel $model
+     * @param object $originator
+     * @param HTTPRequest $request
+     * @param HTTPResponse $response
      */
-    public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model)
+    public function applyToResponse($originator, HTTPRequest $request, HTTPResponse $response)
     {
         $cacheAge = $this->cacheAge;
         $vary = $this->vary;
@@ -75,7 +83,8 @@ class CachingPolicy extends HTTP implements ControllerPolicy
             if ($timestamp) {
                 $responseHeaders["Last-Modified"] = self::gmt_date($timestamp);
 
-                // Chrome ignores Varies when redirecting back (http://code.google.com/p/chromium/issues/detail?id=79758)
+                // Chrome ignores Varies when redirecting back
+                // (http://code.google.com/p/chromium/issues/detail?id=79758)
                 // which means that if you log out, you get redirected back to a page which Chrome then checks against
                 // last-modified (which passes, getting a 304)
                 // when it shouldn't be trying to use that page at all because it's the "logged in" version.

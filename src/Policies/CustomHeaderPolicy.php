@@ -1,4 +1,12 @@
 <?php
+
+namespace SilverStripe\ControllerPolicy\Policies;
+
+use DataModel;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\HTTPResponse;
+use SilverStripe\ControllerPolicy\ControllerPolicy;
+
 /**
  * This policy can be used to write or delete arbitrary headers. Set the header to empty string ("")
  * to suppress that header.
@@ -29,12 +37,11 @@ class CustomHeaderPolicy implements ControllerPolicy
     public $headers = array();
 
     /**
-     * @param Object $originator
-     * @param SS_HTTPRequest $request
-     * @param SS_HTTPResponse $response
-     * @param DataModel $model
+     * @param object $originator
+     * @param HTTPRequest $request
+     * @param HTTPResponse $response
      */
-    public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model)
+    public function applyToResponse($originator, HTTPRequest $request, HTTPResponse $response)
     {
         foreach ($this->headers as $key => $value) {
             if ($value!=="") {

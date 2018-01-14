@@ -1,17 +1,30 @@
 <?php
 
+namespace SilverStripe\ControllerPolicy\Tests;
+
+use SilverStripe\Control\HTTP;
+use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Control\RequestProcessor;
+use SilverStripe\ControllerPolicy\ControllerPolicyRequestFilter;
+use SilverStripe\ControllerPolicy\Tests\CachingPolicyTest\CachingPolicyController;
+use SilverStripe\ControllerPolicy\Tests\CachingPolicyTest\CallbackCachingPolicyController;
+use SilverStripe\ControllerPolicy\Tests\CachingPolicyTest\UnrelatedController;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Dev\FunctionalTest;
+use SilverStripe\ORM\DataObject;
+
 class CachingPolicyTest extends FunctionalTest
 {
-
-    private $configCachingPolicy = array(
-        'CachingPolicy' => array(
+    private $configCachingPolicy = [
+        'CachingPolicy' => [
             'class' => 'CachingPolicy',
-            'properties' => array(
+            'properties' => [
                 'cacheAge' => '999',
-                'vary' => 'X-EyeColour'
-            )
-        )
-    );
+                'vary' => 'X-EyeColour',
+            ],
+        ],
+    ];
 
     public function makeRequest($config, $controller, $url)
     {
@@ -23,39 +36,27 @@ class CachingPolicyTest extends FunctionalTest
         // $response = $this->get('CachingPolicy_Controller/test');
 
         // Instead construct the request pipeline manually. It's ugly, but it works.
-        $filter = Injector::inst()->get('ControllerPolicyRequestFilter');
-        $processor = Injector::inst()->get('RequestProcessor');
-        $processor->setFilters(array($filter));
+        $filter = Injector::inst()->get(ControllerPolicyRequestFilter::class);
+        $processor = Injector::inst()->get(RequestProcessor::class);
+        $processor->setFilters([$filter]);
 
         // Excercise the controller.
         $controller = Injector::inst()->create($controller);
         $controller->setRequestFilter($filter);
         $controller->extend('onAfterInit');
-        $request = new SS_HTTPRequest('GET', 'CachingPolicy_Controller/test');
-        $response = new SS_HTTPResponse();
+        $request = new HTTPRequest('GET', 'CachingPolicyController/test');
+        $response = new HTTPResponse();
         $processor->postRequest($request, $response, DataModel::inst());
 
         return $response;
-    }
-
-    public function setUp()
-    {
-        parent::setUp();
-        Injector::nest();
-    }
-
-    public function tearDown()
-    {
-        Injector::unnest();
-        parent::tearDown();
     }
 
     public function testConfigured()
     {
         $response = $this->makeRequest(
             $this->configCachingPolicy,
-            'CachingPolicy_Controller',
-            'CachingPolicy_Controller/test'
+            CachingPolicyController::class,
+            'CachingPolicyController/test'
         );
 
         $this->assertEquals(
@@ -74,7 +75,7 @@ class CachingPolicyTest extends FunctionalTest
     {
         $response = $this->makeRequest(
             $this->configCachingPolicy,
-            'CallbackCachingPolicy_Controller',
+            CallbackCachingPolicyController::class,
             'CallbackCachingPolicy_Controller/test'
         );
 
@@ -99,7 +100,7 @@ class CachingPolicyTest extends FunctionalTest
     {
         $response = $this->makeRequest(
             $this->configCachingPolicy,
-            'Unrelated_Controller',
+            UnrelatedController::class,
             'Unrelated_Controller/test'
         );
 
@@ -109,16 +110,15 @@ class CachingPolicyTest extends FunctionalTest
 
     public function testModificationDateFromDataObjects()
     {
-
         // Trigger updates to HTTP::$modification_date.
-        new DataObject(array('LastEdited'=>'1970-01-01 00:02'));
-        new DataObject(array('LastEdited'=>'1970-01-01 00:01'));
-        new DataObject(array('LastEdited'=>'1970-01-01 00:03'));
+        new DataObject(['LastEdited'=>'1970-01-01 00:02']);
+        new DataObject(['LastEdited'=>'1970-01-01 00:01']);
+        new DataObject(['LastEdited'=>'1970-01-01 00:03']);
 
         $response = $this->makeRequest(
             $this->configCachingPolicy,
-            'CachingPolicy_Controller',
-            'CachingPolicy_Controller/test'
+            CachingPolicyController::class,
+            'CachingPolicyController/test'
         );
 
         $this->assertEquals(
@@ -126,54 +126,5 @@ class CachingPolicyTest extends FunctionalTest
             HTTP::gmt_date(strtotime('1970-01-01 00:03')),
             'Most recent LastEdited value prevails over the older ones'
         );
-    }
-}
-
-class Unrelated_Controller extends Controller implements TestOnly
-{
-
-    private static $allowed_actions = array(
-        'test'
-    );
-
-    public function test()
-    {
-        return 'Hello world!';
-    }
-}
-
-class CachingPolicy_Controller extends Controller implements TestOnly
-{
-
-    private static $dependencies = array(
-        'Policies' => '%$CachingPolicy'
-    );
-
-    private static $allowed_actions = array(
-        'test'
-    );
-
-    public function test()
-    {
-        return 'Hello world!';
-    }
-}
-
-class CallbackCachingPolicy_Controller extends CachingPolicy_Controller
-{
-
-    public function getCacheAge($age)
-    {
-        return '1001';
-    }
-
-    public function getVary($vary)
-    {
-        return 'X-HeightWeight';
-    }
-
-    public function getModificationTimestamp()
-    {
-        return '5000';
     }
 }

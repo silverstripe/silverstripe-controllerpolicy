@@ -1,4 +1,10 @@
 <?php
+
+namespace SilverStripe\ControllerPolicy;
+
+use SilverStripe\Control\RequestFilter;
+use SilverStripe\Core\Extension;
+
 /**
  * This extension will register the policy with the RequestProcessor filter system to be run at postRequest stage
  * of the control pipeline. This is done with the help of the ControllerPolicyRequestFilter.
