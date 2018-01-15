@@ -11,6 +11,8 @@ class UnrelatedController extends Controller implements TestOnly
         'test',
     ];
 
+    private static $url_segment = 'UnrelatedController';
+
     public function test()
     {
         return 'Hello world!';

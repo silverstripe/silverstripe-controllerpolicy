@@ -7,6 +7,7 @@ use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\RequestProcessor;
 use SilverStripe\ControllerPolicy\ControllerPolicyRequestFilter;
+use SilverStripe\ControllerPolicy\Policies\CachingPolicy;
 use SilverStripe\ControllerPolicy\Tests\CachingPolicyTest\CachingPolicyController;
 use SilverStripe\ControllerPolicy\Tests\CachingPolicyTest\CallbackCachingPolicyController;
 use SilverStripe\ControllerPolicy\Tests\CachingPolicyTest\UnrelatedController;
@@ -17,13 +18,19 @@ use SilverStripe\ORM\DataObject;
 class CachingPolicyTest extends FunctionalTest
 {
     private $configCachingPolicy = [
-        'CachingPolicy' => [
-            'class' => 'CachingPolicy',
+        CachingPolicy::class => [
+            'class' => CachingPolicy::class,
             'properties' => [
                 'cacheAge' => '999',
                 'vary' => 'X-EyeColour',
             ],
         ],
+    ];
+
+    protected static $extra_controllers = [
+        CachingPolicyController::class,
+        CallbackCachingPolicyController::class,
+        UnrelatedController::class,
     ];
 
     public function makeRequest($config, $controller, $url)
@@ -43,10 +50,12 @@ class CachingPolicyTest extends FunctionalTest
         // Excercise the controller.
         $controller = Injector::inst()->create($controller);
         $controller->setRequestFilter($filter);
-        $controller->extend('onAfterInit');
+        $controller->doInit();
+//        $controller->extend('onAfterInit');
         $request = new HTTPRequest('GET', 'CachingPolicyController/test');
-        $response = new HTTPResponse();
-        $processor->postRequest($request, $response, DataModel::inst());
+        $response = $processor->process($request, function (HTTPRequest $request) {
+            return new HTTPResponse();
+        });
 
         return $response;
     }
@@ -60,13 +69,13 @@ class CachingPolicyTest extends FunctionalTest
         );
 
         $this->assertEquals(
-            $response->getHeader('Cache-Control'),
             'max-age=999, must-revalidate, no-transform',
+            $response->getHeader('Cache-Control'),
             'Header appears as configured'
         );
         $this->assertEquals(
-            $response->getHeader('Vary'),
             'X-EyeColour',
+            $response->getHeader('Vary'),
             'Header appears as configured'
         );
     }
@@ -111,9 +120,9 @@ class CachingPolicyTest extends FunctionalTest
     public function testModificationDateFromDataObjects()
     {
         // Trigger updates to HTTP::$modification_date.
-        new DataObject(['LastEdited'=>'1970-01-01 00:02']);
-        new DataObject(['LastEdited'=>'1970-01-01 00:01']);
-        new DataObject(['LastEdited'=>'1970-01-01 00:03']);
+        new DataObject(['LastEdited' => '1970-01-01 00:02']);
+        new DataObject(['LastEdited' => '1970-01-01 00:01']);
+        new DataObject(['LastEdited' => '1970-01-01 00:03']);
 
         $response = $this->makeRequest(
             $this->configCachingPolicy,

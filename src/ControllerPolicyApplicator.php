@@ -23,7 +23,7 @@ class ControllerPolicyApplicator extends Extension
     /**
      * @var array
      */
-    protected $policies = array();
+    protected $policies = [];
 
     /**
      * @param RequestFilter $filter
@@ -41,7 +41,7 @@ class ControllerPolicyApplicator extends Extension
     public function setPolicies($policies)
     {
         if (!is_array($policies)) {
-            $policies = array($policies);
+            $policies = [$policies];
         }
 
         $this->policies = $policies;

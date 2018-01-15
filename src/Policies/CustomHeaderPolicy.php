@@ -2,7 +2,6 @@
 
 namespace SilverStripe\ControllerPolicy\Policies;
 
-use DataModel;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\ControllerPolicy\ControllerPolicy;
@@ -30,11 +29,10 @@ use SilverStripe\ControllerPolicy\ControllerPolicy;
  */
 class CustomHeaderPolicy implements ControllerPolicy
 {
-
     /**
      * @var array
      */
-    public $headers = array();
+    public $headers = [];
 
     /**
      * @param object $originator
@@ -44,7 +42,7 @@ class CustomHeaderPolicy implements ControllerPolicy
     public function applyToResponse($originator, HTTPRequest $request, HTTPResponse $response)
     {
         foreach ($this->headers as $key => $value) {
-            if ($value!=="") {
+            if ($value !== "") {
                 $response->addHeader($key, $value);
             } else {
                 $response->removeHeader($key);

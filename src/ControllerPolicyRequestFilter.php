@@ -6,8 +6,7 @@ use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Control\RequestFilter;
-use SilverStripe\Control\Session;
-use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Config\Configurable;
 
 /**
  * This request filter accepts registrations of policies to be applied at the end of the control pipeline.
@@ -15,17 +14,22 @@ use SilverStripe\Core\Config\Config;
  */
 class ControllerPolicyRequestFilter implements RequestFilter
 {
+    use Configurable;
+
     /**
-     * @var array $ignoreDomainRegexes Force some domains to be ignored. Accepts one wildcard at the beginning.
+     * Force some domains to be ignored. Accepts one wildcard at the beginning.
+     *
+     * @config
+     * @var array
      */
-    private static $ignoreDomainRegexes = array();
+    private static $ignore_domain_regexes = [];
 
     /**
      * An associative array containing the 'originator' and 'policy' reference.
      *
      * @var array
      */
-    private $requestedPolicies = array();
+    private $requestedPolicies = [];
 
     /**
      * Check if the given domain is on the list of ignored domains.
@@ -35,9 +39,9 @@ class ControllerPolicyRequestFilter implements RequestFilter
      */
     public function isIgnoredDomain($domain)
     {
-        if ($ignoreRegexes = Config::inst()->get(ControllerPolicyRequestFilter::class, 'ignoreDomainRegexes')) {
+        if ($ignoreRegexes = $this->config()->get('ignore_domain_regexes')) {
             foreach ($ignoreRegexes as $ignore) {
-                if (preg_match($ignore, $domain)>0) {
+                if (preg_match($ignore, $domain) > 0) {
                     return true;
                 }
             }
@@ -51,15 +55,15 @@ class ControllerPolicyRequestFilter implements RequestFilter
      */
     public function requestPolicy($originator, $policy)
     {
-        $this->requestedPolicies[] = array('originator' => $originator, 'policy' => $policy);
+        $this->requestedPolicies[] = ['originator' => $originator, 'policy' => $policy];
     }
 
     public function clearPolicies()
     {
-        $this->requestedPolicies = array();
+        $this->requestedPolicies = [];
     }
 
-    public function preRequest(HTTPRequest $request, Session $session)
+    public function preRequest(HTTPRequest $request)
     {
         // No-op, we don't know the controller at this stage.
         return true;

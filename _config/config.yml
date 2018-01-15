@@ -9,7 +9,7 @@ SilverStripe\Core\Injector\Injector:
 
 SilverStripe\ControllerPolicy\ControllerPolicyApplicator:
   dependencies:
-    SilverStripe\Control\RequestFilter: '%$SilverStripe\ControllerPolicy\ControllerPolicyRequestFilter'
+    RequestFilter: '%$SilverStripe\ControllerPolicy\ControllerPolicyRequestFilter'
 
 SilverStripe\Control\Controller:
   extensions:

@@ -16,6 +16,8 @@ class CachingPolicyController extends Controller implements TestOnly
         'test',
     ];
 
+    private static $url_segment = 'CachingPolicyController';
+
     public function test()
     {
         return 'Hello world!';

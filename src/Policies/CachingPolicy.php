@@ -22,15 +22,20 @@ class CachingPolicy extends HTTP implements ControllerPolicy
      */
 
     /**
-     * @var int $cacheAge Max-age seconds to cache for if configuration not available from the originator.
+     * Max-age seconds to cache for if configuration not available from the originator.
+     *
+     * @var int
      */
     public $cacheAge = 0;
 
     /**
-     * @var string $vary Vary string to add if configuration is not available from the originator.
-     *      Note on vary headers: Do not add user-agent unless you vary on it AND you have configured user-agent
-     *      clustering in some way, otherwise this will be an equivalent to disabling caching as there
-     *      is a lot of different UAs in the wild.
+     * Vary string to add if configuration is not available from the originator.
+     *
+     * Note on vary headers: Do not add user-agent unless you vary on it AND you have configured user-agent
+     * clustering in some way, otherwise this will be an equivalent to disabling caching as there
+     * is a lot of different UAs in the wild.
+     *
+     * @var string
      */
     public $vary = 'Cookie, X-Forwarded-Protocol';
 
@@ -43,12 +48,12 @@ class CachingPolicy extends HTTP implements ControllerPolicy
     {
         $cacheAge = $this->cacheAge;
         $vary = $this->vary;
-        $responseHeaders = array();
+        $responseHeaders = [];
 
         // Allow overriding max-age from the object hooked up to the policed controller.
         if ($originator->hasMethod('getCacheAge')) {
             $extendedCacheAge = $originator->getCacheAge($cacheAge);
-            if ($extendedCacheAge!==null) {
+            if ($extendedCacheAge !== null) {
                 $cacheAge = $extendedCacheAge;
             }
         }
@@ -56,7 +61,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy
         // Same for vary, but probably less useful.
         if ($originator->hasMethod('getVary')) {
             $extendedVary = $originator->getVary($vary);
-            if ($extendedVary!==null) {
+            if ($extendedVary !== null) {
                 $vary = $extendedVary;
             }
         }
@@ -125,7 +130,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy
             $responseHeaders['ETag'] = self::$etag;
         }
 
-        // Now that we've generated them, either output them or attach them to the SS_HTTPResponse as appropriate
+        // Now that we've generated them, either output them or attach them to the HTTPResponse as appropriate
         foreach ($responseHeaders as $k => $v) {
             $response->addHeader($k, $v);
         }
