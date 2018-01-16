@@ -12,27 +12,62 @@ use SilverStripe\ControllerPolicy\ControllerPolicy;
  *
  * Configuration:
  *
- * Injector:
+ * SilverStripe\Core\Injector\Injector:
  *   GeneralPolicy:
- *     class: CustomHeaderPolicy
+ *     class: YourVendor\YourModule\CustomHeaderPolicy
  *     properties:
  *       headers:
  *         Cache-Control: "public, max-age=600, no-transform"
  *         Custom-Header: "Hello"
  *         Vary: ""
- * HomePage_Controller:
+ * HomePageController:
  *   dependencies:
  *     Policies:
  *       - '%$GeneralPolicy'
  *   extensions:
- *     - ControllerPolicyApplicator
+ *     - SilverStripe\ControllerPolicy\ControllerPolicyApplicator
  */
 class CustomHeaderPolicy implements ControllerPolicy
 {
     /**
      * @var array
      */
-    public $headers = [];
+    protected $headers = [];
+
+    /**
+     * Set the full array of headers to apply to the response
+     *
+     * @param array $headers
+     * @return $this
+     */
+    public function setHeaders(array $headers)
+    {
+        $this->headers = $headers;
+        return $this;
+    }
+
+    /**
+     * Get the list of headers to apply to the response
+     *
+     * @return array
+     */
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    /**
+     * Add a specific header
+     *
+     * @param string $key
+     * @param string|int $value
+     * @return $this
+     */
+    public function addHeader($key, $value)
+    {
+        $this->headers[$key] = $value;
+        return $this;
+    }
 
     /**
      * @param object $originator
@@ -41,7 +76,7 @@ class CustomHeaderPolicy implements ControllerPolicy
      */
     public function applyToResponse($originator, HTTPRequest $request, HTTPResponse $response)
     {
-        foreach ($this->headers as $key => $value) {
+        foreach ($this->getHeaders() as $key => $value) {
             if ($value !== "") {
                 $response->addHeader($key, $value);
             } else {

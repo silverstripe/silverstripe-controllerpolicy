@@ -2,17 +2,18 @@
 
 namespace SilverStripe\ControllerPolicy;
 
+use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
-use SilverStripe\Control\RequestFilter;
+use SilverStripe\Control\Middleware\HTTPMiddleware;
 use SilverStripe\Core\Config\Configurable;
 
 /**
- * This request filter accepts registrations of policies to be applied at the end of the control pipeline.
+ * This middleware accepts registrations of policies to be applied at the end of the control pipeline.
  * The policies will be applied in the order they are added, and will override HTTP::add_cache_headers.
  */
-class ControllerPolicyRequestFilter implements RequestFilter
+class ControllerPolicyMiddleware implements HTTPMiddleware
 {
     use Configurable;
 
@@ -29,7 +30,7 @@ class ControllerPolicyRequestFilter implements RequestFilter
      *
      * @var array
      */
-    private $requestedPolicies = [];
+    protected $requestedPolicies = [];
 
     /**
      * Check if the given domain is on the list of ignored domains.
@@ -52,6 +53,9 @@ class ControllerPolicyRequestFilter implements RequestFilter
 
     /**
      * Add a policy tuple.
+     *
+     * @param Controller $originator
+     * @param array $policy
      */
     public function requestPolicy($originator, $policy)
     {
@@ -63,36 +67,44 @@ class ControllerPolicyRequestFilter implements RequestFilter
         $this->requestedPolicies = [];
     }
 
-    public function preRequest(HTTPRequest $request)
-    {
-        // No-op, we don't know the controller at this stage.
-        return true;
-    }
-
     /**
      * Apply all the requested policies.
      *
      * @param  HTTPRequest  $request
-     * @param  HTTPResponse $response
-     * @return boolean
+     * @param  callable $delegate
+     * @return HTTPResponse
      */
-    public function postRequest(HTTPRequest $request, HTTPResponse $response)
+    public function process(HTTPRequest $request, callable $delegate)
     {
-        if (!Director::is_cli() && isset($_SERVER['HTTP_HOST'])) {
-            // Ignore by regexes.
-            if ($this->isIgnoredDomain($_SERVER['HTTP_HOST'])) {
-                return true;
-            }
+        /** @var HTTPResponse $response */
+        $response = $delegate($request);
+
+        // Ignore by regexes.
+        if ($this->shouldCheckHttpHost() && $this->isIgnoredDomain($_SERVER['HTTP_HOST'])) {
+            return $response;
         }
 
         foreach ($this->requestedPolicies as $requestedPolicy) {
-            $requestedPolicy['policy']->applyToResponse(
+            /** @var ControllerPolicy $policyInstance */
+            $policyInstance = $requestedPolicy['policy'];
+
+            $policyInstance->applyToResponse(
                 $requestedPolicy['originator'],
                 $request,
                 $response
             );
         }
 
-        return true;
+        return $response;
+    }
+
+    /**
+     * Whether the domain regexes should be checked. Can be partially mocked for unit testing.
+     *
+     * @return bool
+     */
+    public function shouldCheckHttpHost()
+    {
+        return !Director::is_cli() && isset($_SERVER['HTTP_HOST']);
     }
 }

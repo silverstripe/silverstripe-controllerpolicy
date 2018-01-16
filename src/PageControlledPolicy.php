@@ -30,7 +30,7 @@ class PageControlledPolicy extends DataExtension
      */
     public function getCacheAge($cacheAge)
     {
-        if ($this->owner->MaxAge!='') {
+        if ($this->owner->MaxAge != '') {
             return (int)($this->owner->MaxAge * 60);
         }
     }

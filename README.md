@@ -9,8 +9,6 @@ It comes with a small selection of policies for implementing caching:
 
 * CachingPolicy: rewrite of SilverStripe default.
 * CustomHeaderPolicy: allow adding any headers via config system.
-* NoopPolicy: allows zero-ing policies in Controllers extending other Controllers.
-* BackwardsCompatibleCachingPolicy: pretty much verbatim copy of `HTTP::add_cache_headers`.
 
 An example Page extension PageControlledPolicy is also provided utilising CachingPolicy's ability to customise
 max-age based on CMS configuration on specific objects.
