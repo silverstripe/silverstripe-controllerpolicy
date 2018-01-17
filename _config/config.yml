@@ -1,14 +1,20 @@
 ---
 Name: controllerpolicy
 ---
-Injector:
-  RequestProcessor:
+SilverStripe\Core\Injector\Injector:
+  SilverStripe\Control\Director:
     properties:
-      filters:
-        - '%$ControllerPolicyRequestFilter'
-ControllerPolicyApplicator:
+      Middlewares:
+        ControllerPolicyMiddleware: '%$SilverStripe\ControllerPolicy\ControllerPolicyMiddleware'
+
+  # Use a non-singleton pattern, since each extension will contain policies unique per controller
+  SilverStripe\ControllerPolicy\ControllerPolicyApplicator:
+    type: prototype
+
+SilverStripe\ControllerPolicy\ControllerPolicyApplicator:
   dependencies:
-    RequestFilter: '%$ControllerPolicyRequestFilter'
-Controller:
+    Middleware: '%$SilverStripe\ControllerPolicy\ControllerPolicyMiddleware'
+
+SilverStripe\Control\Controller:
   extensions:
-    - ControllerPolicyApplicator
+    - SilverStripe\ControllerPolicy\ControllerPolicyApplicator
