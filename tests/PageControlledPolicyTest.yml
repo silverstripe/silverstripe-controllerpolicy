@@ -1,0 +1,5 @@
+Page:
+  some_page:
+    Title: Some page
+    URLSegment: some-page
+    MaxAge: 27

@@ -56,7 +56,7 @@ class CachingPolicyTest extends FunctionalTest
         parent::tearDown();
     }
 
-    public function makeRequest($config, $controller, $url)
+    protected function makeRequest($config, $controller, $url)
     {
         Injector::inst()->load($config);
 
