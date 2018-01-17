@@ -26,7 +26,8 @@ class PageControlledPolicy extends DataExtension
     /**
      * Extension point for the CachingPolicy.
      *
-     * @param int $cacheAge
+     * @param int $cacheAge The original cache age value (in seconds)
+     * @return int|null The new cache age value (in seconds)
      */
     public function getCacheAge($cacheAge)
     {
@@ -36,7 +37,7 @@ class PageControlledPolicy extends DataExtension
     }
 
     /**
-     * @param  FieldList $fields
+     * @param FieldList $fields
      */
     public function updateCMSFields(FieldList $fields)
     {
