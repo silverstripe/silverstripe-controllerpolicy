@@ -37,7 +37,7 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy
      *	user-agent clustering in some way, otherwise this will be an equivalent to disabling caching as there
      *	is a lot of different UAs in the wild.
      */
-    public $vary = 'Cookie, X-Forwarded-Protocol, User-Agent, Accept';
+    public $vary = 'X-Requested-With';
 
     /**
      * Copied and adjusted from HTTP::add_cache_headers
@@ -49,64 +49,77 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy
      */
     public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model)
     {
-        $cacheAge = $this->cacheAge;
+        if ($this->cacheAge > 0) {
+            HTTPCacheControl::singleton()->setMaxAge($this->cacheAge);
+        }
+
+        $config = Config::inst()->forClass(__CLASS__);
 
         // Development sites have frequently changing templates; this can get stuffed up by the code
         // below.
-        if (Director::isDev()) {
-            $cacheAge = 0;
+        if ($config->get('disable_http_cache')) {
+            HTTPCacheControl::singleton()->disableCaching();
         }
 
         // Populate $responseHeaders with all the headers that we want to build
         $responseHeaders = array();
-        if (function_exists('apache_request_headers')) {
-            $requestHeaders = apache_request_headers();
-            if (isset($requestHeaders['X-Requested-With']) && $requestHeaders['X-Requested-With']=='XMLHttpRequest') {
-                $cacheAge = 0;
-            }
-            // bdc: now we must check for DUMB IE6:
-            if (isset($requestHeaders['x-requested-with']) && $requestHeaders['x-requested-with']=='XMLHttpRequest') {
-                $cacheAge = 0;
+        $cacheControlHeaders = $config->get('cache_control');
+        if (!$config->get('cache_ajax_requests') && function_exists('apache_request_headers')) {
+            $requestHeaders = array_change_key_case(apache_request_headers(), CASE_LOWER);
+
+            if (array_key_exists('x-requested-with', $requestHeaders) && strtolower($requestHeaders['x-requested-with']) == 'xmlhttprequest') {
+                HTTPCacheControl::singleton()->disableCaching();
             }
         }
 
-        if ($cacheAge > 0) {
-            $responseHeaders["Cache-Control"] = "max-age=" . $cacheAge . ", must-revalidate, no-transform";
-
-            // Set empty pragma to avoid PHP's session_cache_limiter adding conflicting caching information,
-            // defaulting to "nocache" on most PHP configurations (see http://php.net/session_cache_limiter).
-            // Since it's a deprecated HTTP 1.0 option, all modern HTTP clients and proxies should
-            // prefer the caching information indicated through the "Cache-Control" header.
-            $responseHeaders["Pragma"] = "";
-
-            $responseHeaders['Vary'] = $this->vary;
-        } else {
-            if ($response) {
-                // Grab header for checking. Unfortunately HTTPRequest until 3.1 uses a mistyped variant.
-                $contentDisposition = $response->getHeader('Content-disposition');
-                if (!$contentDisposition) {
-                    $contentDisposition = $response->getHeader('Content-Disposition');
-                }
-            }
-
-            if (
-                $response &&
-                Director::is_https() &&
-                strstr($_SERVER["HTTP_USER_AGENT"], 'MSIE')==true &&
-                strstr($contentDisposition, 'attachment;')==true
-            ) {
-                // IE6-IE8 have problems saving files when https and no-cache are used
-                // (http://support.microsoft.com/kb/323308)
-                // Note: this is also fixable by ticking "Do not save encrypted pages to disk" in advanced options.
-                $responseHeaders["Cache-Control"] = "max-age=3, must-revalidate, no-transform";
-                $responseHeaders["Pragma"] = "";
+        $vary = $config->get('vary');
+        if ($vary && strlen($vary)) {
+            // split the current vary header into it's parts and merge it with the config settings
+            // to create a list of unique vary values
+            if ($request->getHeader('Vary')) {
+                $currentVary = explode(',', $request->getHeader('Vary'));
             } else {
-                $responseHeaders["Cache-Control"] = "no-cache, max-age=0, must-revalidate, no-transform";
+                $currentVary = array();
             }
+            $vary = explode(',', $vary);
+            $localVary = explode(',', $this->vary);
+            $vary = array_merge($currentVary, $vary, $localVary);
+            $vary = array_map('trim', $vary);
+            $vary = array_unique($vary);
+            $vary = implode(', ', $vary);
+            $responseHeaders['Vary'] = $vary;
         }
 
-        if (self::$modification_date && $cacheAge > 0) {
+        $contentDisposition = $response->getHeader('Content-Disposition', true);
+        if(
+            Director::is_https() &&
+            isset($_SERVER['HTTP_USER_AGENT']) &&
+            strstr($_SERVER['HTTP_USER_AGENT'], 'MSIE')==true &&
+            strstr($contentDisposition, 'attachment;')==true &&
+            (
+                HTTPCacheControl::singleton()->hasDirective('no-cache') ||
+                HTTPCacheControl::singleton()->hasDirective('no-store')
+            )
+        ) {
+            // IE6-IE8 have problems saving files when https and no-cache/no-store are used
+            // (http://support.microsoft.com/kb/323308)
+            // Note: this is also fixable by ticking "Do not save encrypted pages to disk" in advanced options.
+            HTTPCacheControl::singleton()
+                ->privateCache()
+                ->removeDirective('no-cache')
+                ->removeDirective('no-store');
+        }
+
+        if (!empty($cacheControlHeaders)) {
+            HTTPCacheControl::singleton()->setDirectivesFromArray($cacheControlHeaders);
+        }
+
+        if (self::$modification_date) {
             $responseHeaders["Last-Modified"] = self::gmt_date(self::$modification_date);
+        }
+
+        // if we can store the cache responses we should generate and send etags
+        if (!HTTPCacheControl::singleton()->hasDirective('no-store')) {
 
             // Chrome ignores Varies when redirecting back (http://code.google.com/p/chromium/issues/detail?id=79758)
             // which means that if you log out, you get redirected back to a page which Chrome then checks against
@@ -114,48 +127,35 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy
             // when it shouldn't be trying to use that page at all because it's the "logged in" version.
             // By also using and etag that includes both the modification date and all the varies
             // values which we also check against we can catch this and not return a 304
-            $etagParts = array(self::$modification_date, serialize($_COOKIE));
-            $etagParts[] = Director::is_https() ? 'https' : 'http';
-            if (isset($_SERVER['HTTP_USER_AGENT'])) {
-                $etagParts[] = $_SERVER['HTTP_USER_AGENT'];
-            }
-            if (isset($_SERVER['HTTP_ACCEPT'])) {
-                $etagParts[] = $_SERVER['HTTP_ACCEPT'];
-            }
+            $etag = self::generateETag($response);
+            if ($etag) {
+                $responseHeaders['ETag'] = $etag;
 
-            $etag = sha1(implode(':', $etagParts));
-            $responseHeaders["ETag"] = $etag;
+                // 304 response detection
+                if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+                    // As above, only 304 if the last request had all the same varies values
+                    // (or the etag isn't passed as part of the request - but with chrome it always is)
+                    $matchesEtag = $_SERVER['HTTP_IF_NONE_MATCH'] == $etag;
 
-            // 304 response detection
-            if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
-                $ifModifiedSince = strtotime(stripslashes($_SERVER['HTTP_IF_MODIFIED_SINCE']));
-
-                // As above, only 304 if the last request had all the same varies values
-                // (or the etag isn't passed as part of the request - but with chrome it always is)
-                $matchesEtag = !isset($_SERVER['HTTP_IF_NONE_MATCH']) || $_SERVER['HTTP_IF_NONE_MATCH'] == $etag;
-
-                if ($ifModifiedSince >= self::$modification_date && $matchesEtag) {
-                    if ($response) {
+                    if ($matchesEtag) {
                         $response->setStatusCode(304);
                         $response->setBody('');
-                    } else {
-                        header('HTTP/1.0 304 Not Modified');
-                        die();
                     }
                 }
             }
-
-            $expires = time() + $cacheAge;
-            $responseHeaders["Expires"] = self::gmt_date($expires);
         }
 
-        if (self::$etag) {
-            $responseHeaders['ETag'] = self::$etag;
-        }
+        $expires = time() + HTTPCacheControl::singleton()->getDirective('max-age');
+        $responseHeaders["Expires"] = self::gmt_date($expires);
 
         // Now that we've generated them, either output them or attach them to the SS_HTTPResponse as appropriate
-        foreach ($responseHeaders as $k => $v) {
-            $response->addHeader($k, $v);
+        foreach($responseHeaders as $k => $v) {
+            // Set the header now if it's not already set.
+            if ($response->getHeader($k) === null) {
+                $response->addHeader($k, $v);
+            }
         }
+
+        HTTPCacheControl::singleton()->applyToResponse($response);
     }
 }
