@@ -6,6 +6,7 @@ use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTP;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Control\Middleware\HTTPCacheControlMiddleware;
 use SilverStripe\ControllerPolicy\ControllerPolicy;
 
 /**
@@ -43,7 +44,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy
      *
      * @var string
      */
-    protected $vary = 'Cookie, X-Forwarded-Protocol';
+    protected $vary = '';
 
     /**
      * Set the cache age
@@ -109,6 +110,12 @@ class CachingPolicy extends HTTP implements ControllerPolicy
             }
         }
 
+        // Development sites have frequently changing templates; this can get stuffed up by the code
+        // below.
+        if (Director::isDev() && $this->config()->get('disable_cache_age_in_dev')) {
+            $cacheAge = 0;
+        }
+
         // Same for vary, but probably less useful.
         if ($originator->hasMethod('getVary')) {
             $extendedVary = $originator->getVary($vary);
@@ -117,114 +124,61 @@ class CachingPolicy extends HTTP implements ControllerPolicy
             }
         }
 
-        // Development sites have frequently changing templates; this can get stuffed up by the code
-        // below.
-        if (Director::isDev() && $this->config()->get('disable_cache_age_in_dev')) {
-            $cacheAge = 0;
-        }
-
-        // The headers have been sent and we don't have an HTTPResponse object to attach things to; no point in
-        // us trying.
-        if (headers_sent() && !$response->getBody()) {
-            return;
-        }
-
-        // Populate $responseHeaders with all the headers that we want to build
-        $responseHeaders = [];
-
-        $cacheControlHeaders = HTTP::config()->uninherited('cache_control');
+        // Enable caching via core APIs
+        HTTPCacheControlMiddleware::singleton()->enableCache();
 
         if ($cacheAge > 0) {
-            // Note: must-revalidate means that the cache must revalidate AFTER the entry has gone stale.
-            $cacheControlHeaders['must-revalidate'] = 'true';
-
-            $cacheControlHeaders['max-age'] = $cacheAge;
-
-            // Set empty pragma to avoid PHP's session_cache_limiter adding conflicting caching information,
-            // defaulting to "nocache" on most PHP configurations (see http://php.net/session_cache_limiter).
-            // Since it's a deprecated HTTP 1.0 option, all modern HTTP clients and proxies should
-            // prefer the caching information indicated through the "Cache-Control" header.
-            $responseHeaders["Pragma"] = "";
-
-            $responseHeaders['Vary'] = $vary;
+            HTTPCacheControlMiddleware::singleton()->setMaxAge($cacheAge);
         }
 
-        foreach ($cacheControlHeaders as $header => $value) {
-            if (is_null($value)) {
-                unset($cacheControlHeaders[$header]);
-            } elseif ((is_bool($value) && $value) || $value === "true") {
-                $cacheControlHeaders[$header] = $header;
-            } else {
-                $cacheControlHeaders[$header] = $header . "=" . $value;
-            }
+        // Merge vary into response
+        if ($vary) {
+            HTTPCacheControlMiddleware::singleton()->addVary($vary);
         }
-
-        $responseHeaders['Cache-Control'] = implode(', ', $cacheControlHeaders);
-        unset($cacheControlHeaders, $header, $value);
 
         // Find out when the URI was last modified. Allows customisation, but fall back HTTP timestamp collector.
         if ($originator->hasMethod('getModificationTimestamp')) {
             $timestamp = $originator->getModificationTimestamp();
-        } elseif (self::$modification_date && $cacheAge > 0) {
-            $timestamp = self::$modification_date;
+        } else {
+            $timestamp = HTTP::$modification_date;
         }
 
-        if (isset($timestamp)) {
-            $responseHeaders["Last-Modified"] = self::gmt_date($timestamp);
+        if ($timestamp) {
+            $response->addHeader("Last-Modified", self::gmt_date($timestamp));
+        }
 
+        // if we can store the cache responses we should generate and send etags
+        if (!HTTPCacheControlMiddleware::singleton()->hasDirective('no-store')) {
             // Chrome ignores Varies when redirecting back (http://code.google.com/p/chromium/issues/detail?id=79758)
             // which means that if you log out, you get redirected back to a page which Chrome then checks against
             // last-modified (which passes, getting a 304)
             // when it shouldn't be trying to use that page at all because it's the "logged in" version.
             // By also using and etag that includes both the modification date and all the varies
             // values which we also check against we can catch this and not return a 304
-            $etagParts = array(self::$modification_date, serialize($_COOKIE));
-            $etagParts[] = Director::is_https() ? 'https' : 'http';
-            if (isset($_SERVER['HTTP_USER_AGENT'])) {
-                $etagParts[] = $_SERVER['HTTP_USER_AGENT'];
-            }
-            if (isset($_SERVER['HTTP_ACCEPT'])) {
-                $etagParts[] = $_SERVER['HTTP_ACCEPT'];
-            }
+            $etag = self::generateETag($response);
 
-            $etag = sha1(implode(':', $etagParts));
-            $responseHeaders["ETag"] = $etag;
+            if ($etag) {
+                $response->addHeader('ETag', $etag);
 
-            // 304 response detection
-            if (isset($_SERVER['HTTP_IF_MODIFIED_SINCE'])) {
-                $ifModifiedSince = strtotime(stripslashes($_SERVER['HTTP_IF_MODIFIED_SINCE']));
+                // 304 response detection
+                if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
+                    // As above, only 304 if the last request had all the same varies values
+                    // (or the etag isn't passed as part of the request - but with chrome it always is)
+                    $matchesEtag = $_SERVER['HTTP_IF_NONE_MATCH'] == $etag;
 
-                // As above, only 304 if the last request had all the same varies values
-                // (or the etag isn't passed as part of the request - but with chrome it always is)
-                $matchesEtag = !isset($_SERVER['HTTP_IF_NONE_MATCH']) || $_SERVER['HTTP_IF_NONE_MATCH'] == $etag;
-
-                if ($ifModifiedSince >= self::$modification_date && $matchesEtag) {
-                    if ($body) {
-                        $body->setStatusCode(304);
-                        $body->setBody('');
-                    } else {
-                        header('HTTP/1.0 304 Not Modified');
-                        die();
+                    if ($matchesEtag) {
+                        $response->setStatusCode(304);
+                        $response->setBody('');
                     }
                 }
             }
-
-            $expires = time() + $cacheAge;
-            $responseHeaders["Expires"] = self::gmt_date($expires);
         }
 
-        if (self::$etag) {
-            $responseHeaders['ETag'] = self::$etag;
-        }
+        $expires = time() + HTTPCacheControl::singleton()->getDirective('max-age');
+        $response->addHeader("Expires", self::gmt_date($expires));
 
-        // etag needs to be a quoted string according to HTTP spec
-        if (!empty($responseHeaders['ETag']) && 0 !== strpos($responseHeaders['ETag'], '"')) {
-            $responseHeaders['ETag'] = sprintf('"%s"', $responseHeaders['ETag']);
-        }
-
-        // Now that we've generated them, either output them or attach them to the HTTPResponse as appropriate
-        foreach ($responseHeaders as $k => $v) {
-            $response->addHeader($k, $v);
-        }
+        // Now that we've generated them, either output them or attach them to the SS_HTTPResponse as appropriate
+        HTTPCacheControlMiddleware::singleton()->applyToResponse($response);
     }
+
 }
