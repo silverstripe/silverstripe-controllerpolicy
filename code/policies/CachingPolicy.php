@@ -35,12 +35,11 @@ class CachingPolicy extends HTTP implements ControllerPolicy
     {
         $cacheAge = $this->cacheAge;
         $vary = $this->vary;
-        $responseHeaders = array();
 
         // Allow overriding max-age from the object hooked up to the policed controller.
         if ($originator->hasMethod('getCacheAge')) {
             $extendedCacheAge = $originator->getCacheAge($cacheAge);
-            if ($extendedCacheAge!==null) {
+            if ($extendedCacheAge !== null) {
                 $cacheAge = $extendedCacheAge;
             }
         }
@@ -62,20 +61,10 @@ class CachingPolicy extends HTTP implements ControllerPolicy
             HTTPCacheControl::singleton()->setMaxAge($cacheAge);
         }
 
-        if ($vary && strlen($vary)) {
-            // split the current vary header into it's parts and merge it with the config settings
-            // to create a list of unique vary values
-            if ($request->getHeader('Vary')) {
-                $currentVary = explode(',', $request->getHeader('Vary'));
-            } else {
-                $currentVary = array();
-            }
-            $vary = explode(',', $vary);
-            $vary = array_merge($currentVary, $vary);
-            $vary = array_map('trim', $vary);
-            $vary = array_unique($vary);
-            $vary = implode(', ', $vary);
-            $responseHeaders['Vary'] = $vary;
+        // Merge vary into response
+        if ($vary) {
+            $vary = self::combineVary($vary, $response->getHeader('Vary'));
+            $response->addHeader('Vary', $vary);
         }
 
         // Find out when the URI was last modified. Allows customisation, but fall back HTTP timestamp collector.
@@ -86,7 +75,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy
         }
 
         if ($timestamp) {
-            $responseHeaders["Last-Modified"] = self::gmt_date($timestamp);
+            $response->addHeader("Last-Modified", self::gmt_date($timestamp));
         }
 
         // if we can store the cache responses we should generate and send etags
@@ -100,7 +89,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy
             $etag = self::generateETag($response);
 
             if ($etag) {
-                $responseHeaders['ETag'] = $etag;
+                $response->addHeader('ETag', $etag);
 
                 // 304 response detection
                 if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
@@ -117,12 +106,9 @@ class CachingPolicy extends HTTP implements ControllerPolicy
         }
 
         $expires = time() + HTTPCacheControl::singleton()->getDirective('max-age');
-        $responseHeaders["Expires"] = self::gmt_date($expires);
+        $response->addHeader("Expires", self::gmt_date($expires));
 
         // Now that we've generated them, either output them or attach them to the SS_HTTPResponse as appropriate
-        foreach ($responseHeaders as $k => $v) {
-            $response->addHeader($k, $v);
-        }
         HTTPCacheControl::singleton()->applyToResponse($response);
     }
 }
