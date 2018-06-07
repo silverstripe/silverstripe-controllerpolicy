@@ -59,9 +59,11 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy
             $response->addHeader('Vary', $vary);
         }
 
-        // Ensure we override any existing cache policy
+        // Ensure we override any existing cache policy, and enable parent
         $response->removeHeader('Cache-Control');
-
+        Config::nest();
+        Config::inst()->remove('HTTP', 'disable_http_cache');
         static::add_cache_headers($response);
+        Config::unnest();
     }
 }

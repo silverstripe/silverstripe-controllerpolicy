@@ -61,14 +61,15 @@ class CachingPolicyTest extends FunctionalTest
         $directives = explode(',', $response->getHeader('Cache-Control'));
         $directives = array_map('trim', $directives);
 
-        $this->assertCount(3, $directives);
+        $this->assertCount(4, $directives);
         $this->assertContains('max-age=999', $directives);
         $this->assertContains('must-revalidate', $directives);
         $this->assertContains('no-cache', $directives);
+        $this->assertContains('no-store', $directives);
 
         $this->assertEquals(
-            $response->getHeader('Vary'),
             'X-EyeColour',
+            $response->getHeader('Vary'),
             'Header appears as configured'
         );
     }
@@ -84,14 +85,15 @@ class CachingPolicyTest extends FunctionalTest
         $directives = explode(',', $response->getHeader('Cache-Control'));
         $directives = array_map('trim', $directives);
 
-        $this->assertCount(3, $directives);
+        $this->assertCount(4, $directives);
         $this->assertContains('max-age=1001', $directives);
         $this->assertContains('must-revalidate', $directives);
         $this->assertContains('no-cache', $directives);
+        $this->assertContains('no-store', $directives);
 
         $this->assertEquals(
-            $response->getHeader('Vary'),
             'X-HeightWeight',
+            $response->getHeader('Vary'),
             'Controller\'s getVary() overrides the configuration'
         );
         $this->assertEquals(
