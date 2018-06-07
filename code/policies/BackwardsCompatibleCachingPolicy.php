@@ -53,109 +53,12 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy
             HTTPCacheControl::singleton()->setMaxAge($this->cacheAge);
         }
 
-        $config = Config::inst()->forClass(__CLASS__);
-
-        // Development sites have frequently changing templates; this can get stuffed up by the code
-        // below.
-        if ($config->get('disable_http_cache')) {
-            HTTPCacheControl::singleton()->disableCaching();
+        // Merge custom vary into response
+        if ($this->vary) {
+            $vary = self::combineVary($this->vary, $response->getHeader('Vary'));
+            $response->addHeader('Vary', $vary);
         }
 
-        // Populate $responseHeaders with all the headers that we want to build
-        $responseHeaders = array();
-        $cacheControlHeaders = $config->get('cache_control');
-        if (!$config->get('cache_ajax_requests') && function_exists('apache_request_headers')) {
-            $requestHeaders = array_change_key_case(apache_request_headers(), CASE_LOWER);
-
-            if (array_key_exists('x-requested-with', $requestHeaders) && strtolower($requestHeaders['x-requested-with']) == 'xmlhttprequest') {
-                HTTPCacheControl::singleton()->disableCaching();
-            }
-        }
-
-        $vary = $config->get('vary');
-        if ($vary && strlen($vary)) {
-            // split the current vary header into it's parts and merge it with the config settings
-            // to create a list of unique vary values
-            if ($request->getHeader('Vary')) {
-                $currentVary = explode(',', $request->getHeader('Vary'));
-            } else {
-                $currentVary = array();
-            }
-            $vary = explode(',', $vary);
-            $localVary = explode(',', $this->vary);
-            $vary = array_merge($currentVary, $vary, $localVary);
-            $vary = array_map('trim', $vary);
-            $vary = array_unique($vary);
-            $vary = implode(', ', $vary);
-            $responseHeaders['Vary'] = $vary;
-        }
-
-        $contentDisposition = $response->getHeader('Content-Disposition', true);
-        if(
-            Director::is_https() &&
-            isset($_SERVER['HTTP_USER_AGENT']) &&
-            strstr($_SERVER['HTTP_USER_AGENT'], 'MSIE')==true &&
-            strstr($contentDisposition, 'attachment;')==true &&
-            (
-                HTTPCacheControl::singleton()->hasDirective('no-cache') ||
-                HTTPCacheControl::singleton()->hasDirective('no-store')
-            )
-        ) {
-            // IE6-IE8 have problems saving files when https and no-cache/no-store are used
-            // (http://support.microsoft.com/kb/323308)
-            // Note: this is also fixable by ticking "Do not save encrypted pages to disk" in advanced options.
-            HTTPCacheControl::singleton()
-                ->privateCache()
-                ->removeDirective('no-cache')
-                ->removeDirective('no-store');
-        }
-
-        if (!empty($cacheControlHeaders)) {
-            HTTPCacheControl::singleton()->setDirectivesFromArray($cacheControlHeaders);
-        }
-
-        if (self::$modification_date) {
-            $responseHeaders["Last-Modified"] = self::gmt_date(self::$modification_date);
-        }
-
-        // if we can store the cache responses we should generate and send etags
-        if (!HTTPCacheControl::singleton()->hasDirective('no-store')) {
-
-            // Chrome ignores Varies when redirecting back (http://code.google.com/p/chromium/issues/detail?id=79758)
-            // which means that if you log out, you get redirected back to a page which Chrome then checks against
-            // last-modified (which passes, getting a 304)
-            // when it shouldn't be trying to use that page at all because it's the "logged in" version.
-            // By also using and etag that includes both the modification date and all the varies
-            // values which we also check against we can catch this and not return a 304
-            $etag = self::generateETag($response);
-            if ($etag) {
-                $responseHeaders['ETag'] = $etag;
-
-                // 304 response detection
-                if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
-                    // As above, only 304 if the last request had all the same varies values
-                    // (or the etag isn't passed as part of the request - but with chrome it always is)
-                    $matchesEtag = $_SERVER['HTTP_IF_NONE_MATCH'] == $etag;
-
-                    if ($matchesEtag) {
-                        $response->setStatusCode(304);
-                        $response->setBody('');
-                    }
-                }
-            }
-        }
-
-        $expires = time() + HTTPCacheControl::singleton()->getDirective('max-age');
-        $responseHeaders["Expires"] = self::gmt_date($expires);
-
-        // Now that we've generated them, either output them or attach them to the SS_HTTPResponse as appropriate
-        foreach($responseHeaders as $k => $v) {
-            // Set the header now if it's not already set.
-            if ($response->getHeader($k) === null) {
-                $response->addHeader($k, $v);
-            }
-        }
-
-        HTTPCacheControl::singleton()->applyToResponse($response);
+        static::add_cache_headers($response);
     }
 }
