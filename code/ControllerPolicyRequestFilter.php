@@ -40,6 +40,9 @@ class ControllerPolicyRequestFilter implements RequestFilter
 
     /**
      * Add a policy tuple.
+     *
+     * @param object $originator
+     * @param ControllerPolicy $policy
      */
     public function requestPolicy($originator, $policy)
     {
@@ -75,7 +78,9 @@ class ControllerPolicyRequestFilter implements RequestFilter
         }
 
         foreach ($this->requestedPolicies as $requestedPolicy) {
-            $requestedPolicy['policy']->applyToResponse(
+            /** @var ControllerPolicy $controllerPolicy */
+            $controllerPolicy = $requestedPolicy['policy'];
+            $controllerPolicy->applyToResponse(
                 $requestedPolicy['originator'],
                 $request,
                 $response,

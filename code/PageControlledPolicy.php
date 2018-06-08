@@ -3,6 +3,9 @@
  * This extension leverages the CachingPolicy's ability to customise the max-age per originator.
  * The configuration option is surfaced to the CMS UI. The extension needs to be added
  * to the object related to the policed controller.
+ *
+ * @property string MaxAge
+ * @property PageControlledPolicy $owner
  */
 class PageControlledPolicy extends DataExtension
 {
@@ -16,13 +19,15 @@ class PageControlledPolicy extends DataExtension
     /**
      * Extension point for the CachingPolicy.
      *
-     * @param int $cacheAge
+     * @param int $cacheAge Default cache age
+     * @return int|null Preferred cache age, or null if no cache age specified
      */
     public function getCacheAge($cacheAge)
     {
-        if ($this->owner->MaxAge!='') {
-            return (int)($this->owner->MaxAge*60);
+        if ($this->owner->MaxAge != '') {
+            return (int)($this->owner->MaxAge * 60);
         }
+        return null;
     }
 
     /**

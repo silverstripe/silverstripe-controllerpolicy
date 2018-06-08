@@ -10,7 +10,7 @@
 class ControllerPolicyApplicator extends Extension
 {
     /**
-     * @var RequestFilter
+     * @var ControllerPolicyRequestFilter
      */
     private $requestFilter;
 
@@ -20,7 +20,7 @@ class ControllerPolicyApplicator extends Extension
     protected $policies = array();
 
     /**
-     * @param RequestFilter $filter
+     * @param ControllerPolicyRequestFilter $filter
      */
     public function setRequestFilter($filter)
     {
