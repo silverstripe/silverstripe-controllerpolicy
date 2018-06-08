@@ -49,6 +49,8 @@ class BackwardsCompatibleCachingPolicy extends HTTP implements ControllerPolicy
      */
     public function applyToResponse($originator, SS_HTTPRequest $request, SS_HTTPResponse $response, DataModel $model)
     {
+        Deprecation::notice("4.0.0", "Use HTTPCacheControl::singleton() instead of controllerpolicy");
+
         if ($this->cacheAge > 0) {
             HTTPCacheControl::singleton()->setMaxAge($this->cacheAge);
         }
