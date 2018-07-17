@@ -15,7 +15,6 @@ use SilverStripe\ControllerPolicy\Tests\CachingPolicyTest\UnrelatedController;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\FunctionalTest;
-use SilverStripe\ORM\DataObject;
 
 class CachingPolicyTest extends FunctionalTest
 {
@@ -139,26 +138,6 @@ class CachingPolicyTest extends FunctionalTest
         $defaultVary = array_keys(HTTPCacheControlMiddleware::config()->get('defaultVary'));
         $vary = $this->getCsvAsArray($response->getHeader('Vary'));
         $this->assertEquals($vary, $defaultVary, 'Headers on unrelated controller are unaffected');
-    }
-
-    public function testModificationDateFromDataObjects()
-    {
-        // Trigger updates to HTTP::$modification_date.
-        new DataObject(['LastEdited' => '1970-01-01 00:02']);
-        new DataObject(['LastEdited' => '1970-01-01 00:01']);
-        new DataObject(['LastEdited' => '1970-01-01 00:03']);
-
-        $response = $this->makeRequest(
-            $this->configCachingPolicy,
-            CachingPolicyController::class,
-            'CachingPolicyController/test'
-        );
-
-        $this->assertEquals(
-            HTTP::gmt_date(strtotime('1970-01-01 00:03')),
-            $response->getHeader('Last-Modified'),
-            'Most recent LastEdited value prevails over the older ones'
-        );
     }
 
     /**
