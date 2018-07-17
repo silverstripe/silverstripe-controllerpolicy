@@ -147,34 +147,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy
             $response->addHeader("Last-Modified", self::gmt_date($timestamp));
         }
 
-        // if we can store the cache responses we should generate and send etags
-        if (!HTTPCacheControlMiddleware::singleton()->hasDirective('no-store')) {
-            // Chrome ignores Varies when redirecting back (http://code.google.com/p/chromium/issues/detail?id=79758)
-            // which means that if you log out, you get redirected back to a page which Chrome then checks against
-            // last-modified (which passes, getting a 304)
-            // when it shouldn't be trying to use that page at all because it's the "logged in" version.
-            // By also using and etag that includes both the modification date and all the varies
-            // values which we also check against we can catch this and not return a 304
-            $etag = self::generateETag($response);
-
-            if ($etag) {
-                $response->addHeader('ETag', $etag);
-
-                // 304 response detection
-                if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {
-                    // As above, only 304 if the last request had all the same varies values
-                    // (or the etag isn't passed as part of the request - but with chrome it always is)
-                    $matchesEtag = $_SERVER['HTTP_IF_NONE_MATCH'] == $etag;
-
-                    if ($matchesEtag) {
-                        $response->setStatusCode(304);
-                        $response->setBody('');
-                    }
-                }
-            }
-        }
-
-        $expires = time() + HTTPCacheControl::singleton()->getDirective('max-age');
+        $expires = time() + HTTPCacheControlMiddleware::singleton()->getDirective('max-age');
         $response->addHeader("Expires", self::gmt_date($expires));
 
         // Now that we've generated them, either output them or attach them to the SS_HTTPResponse as appropriate
