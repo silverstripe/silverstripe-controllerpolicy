@@ -36,7 +36,7 @@ class CachingPolicy extends HTTP implements ControllerPolicy
         $cacheAge = $this->cacheAge;
         $vary = $this->vary;
 
-        // Allow overriding max-age from the object hooked up to the policed controller.
+                // Allow overriding max-age from the object hooked up to the policed controller.
         if ($originator->hasMethod('getCacheAge')) {
             /** @var PageControlledPolicy $originator */
             $extendedCacheAge = $originator->getCacheAge($cacheAge);
@@ -53,10 +53,8 @@ class CachingPolicy extends HTTP implements ControllerPolicy
             }
         }
 
-        $cacheControlHeaders = Config::inst()->get(__CLASS__, 'cache_control');
-        if (!empty($cacheControlHeaders)) {
-            HTTPCacheControl::singleton()->setDirectivesFromArray($cacheControlHeaders);
-        }
+        // Enable caching via core APIs
+        HTTPCacheControl::singleton()->enableCache();
 
         if ($cacheAge > 0) {
             HTTPCacheControl::singleton()->setMaxAge($cacheAge);

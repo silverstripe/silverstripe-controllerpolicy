@@ -61,11 +61,9 @@ class CachingPolicyTest extends FunctionalTest
         $directives = explode(',', $response->getHeader('Cache-Control'));
         $directives = array_map('trim', $directives);
 
-        $this->assertCount(4, $directives);
+        $this->assertCount(2, $directives);
         $this->assertContains('max-age=999', $directives);
         $this->assertContains('must-revalidate', $directives);
-        $this->assertContains('no-cache', $directives);
-        $this->assertContains('no-store', $directives);
 
         $this->assertEquals(
             'X-EyeColour',
@@ -85,11 +83,9 @@ class CachingPolicyTest extends FunctionalTest
         $directives = explode(',', $response->getHeader('Cache-Control'));
         $directives = array_map('trim', $directives);
 
-        $this->assertCount(4, $directives);
+        $this->assertCount(2, $directives);
         $this->assertContains('max-age=1001', $directives);
         $this->assertContains('must-revalidate', $directives);
-        $this->assertContains('no-cache', $directives);
-        $this->assertContains('no-store', $directives);
 
         $this->assertEquals(
             'X-HeightWeight',
