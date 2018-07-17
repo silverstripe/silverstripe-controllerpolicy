@@ -7,6 +7,12 @@
 
 ## Summary
 
+**This module is deprecated for usage with SilverStripe 3.7+**.
+The [HTTPCacheControl API](https://docs.silverstripe.org/en/4/developer_guides/performance/http_cache_headers/)
+in SilverStripe Framework provides a more high-level abstraction of caching behaviour. 
+
+## Overview
+
 This module has been designed to provide the ability to configure response policies that apply per specific
 Controller.
 
