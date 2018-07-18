@@ -58,14 +58,16 @@ class CachingPolicyTest extends FunctionalTest
             'CachingPolicy_Controller/test'
         );
 
+        $directives = explode(',', $response->getHeader('Cache-Control'));
+        $directives = array_map('trim', $directives);
+
+        $this->assertCount(2, $directives);
+        $this->assertContains('max-age=999', $directives);
+        $this->assertContains('must-revalidate', $directives);
+
         $this->assertEquals(
-            $response->getHeader('Cache-Control'),
-            'max-age=999, must-revalidate, no-transform',
-            'Header appears as configured'
-        );
-        $this->assertEquals(
-            $response->getHeader('Vary'),
             'X-EyeColour',
+            $response->getHeader('Vary'),
             'Header appears as configured'
         );
     }
@@ -78,14 +80,16 @@ class CachingPolicyTest extends FunctionalTest
             'CallbackCachingPolicy_Controller/test'
         );
 
+        $directives = explode(',', $response->getHeader('Cache-Control'));
+        $directives = array_map('trim', $directives);
+
+        $this->assertCount(2, $directives);
+        $this->assertContains('max-age=1001', $directives);
+        $this->assertContains('must-revalidate', $directives);
+
         $this->assertEquals(
-            $response->getHeader('Cache-Control'),
-            'max-age=1001, must-revalidate, no-transform',
-            'Controller\'s getCacheAge() overrides the configuration'
-        );
-        $this->assertEquals(
-            $response->getHeader('Vary'),
             'X-HeightWeight',
+            $response->getHeader('Vary'),
             'Controller\'s getVary() overrides the configuration'
         );
         $this->assertEquals(
