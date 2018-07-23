@@ -153,5 +153,4 @@ class CachingPolicy extends HTTP implements ControllerPolicy
         // Now that we've generated them, either output them or attach them to the SS_HTTPResponse as appropriate
         HTTPCacheControlMiddleware::singleton()->applyToResponse($response);
     }
-
 }
