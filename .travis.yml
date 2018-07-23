@@ -20,7 +20,7 @@ before_script:
   - phpenv config-rm xdebug.ini
 
   - composer validate
-  - if [[ $DB == "PGSQL" ]]; then composer require --no-update silverstripe/postgresql 2.0.x-dev; fi
+  - if [[ $DB == "PGSQL" ]]; then composer require --no-update silverstripe/postgresql 2.1.x-dev; fi
   - composer require --no-update silverstripe/recipe-cms 1.2.x-dev
   - composer install --prefer-dist --no-interaction --no-progress --no-suggest --optimize-autoloader --verbose --profile
 
