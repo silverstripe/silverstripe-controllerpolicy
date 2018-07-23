@@ -5,6 +5,7 @@ namespace SilverStripe\ControllerPolicy\Tests;
 use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTP;
 use SilverStripe\Control\HTTPRequest;
+use SilverStripe\Control\Middleware\HTTPCacheControlMiddleware;
 use SilverStripe\Control\Session;
 use SilverStripe\ControllerPolicy\ControllerPolicyMiddleware;
 use SilverStripe\ControllerPolicy\Policies\CachingPolicy;
@@ -14,7 +15,6 @@ use SilverStripe\ControllerPolicy\Tests\CachingPolicyTest\UnrelatedController;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\FunctionalTest;
-use SilverStripe\ORM\DataObject;
 
 class CachingPolicyTest extends FunctionalTest
 {
@@ -39,6 +39,11 @@ class CachingPolicyTest extends FunctionalTest
         parent::setUp();
 
         Config::modify()->set(CachingPolicy::class, 'disable_cache_age_in_dev', false);
+
+        // Set to disabled at null forcing level, overrides dev mode defaults
+        HTTPCacheControlMiddleware::config()
+            ->set('defaultForcingLevel', 0);
+        HTTPCacheControlMiddleware::reset();
     }
 
     /**
@@ -82,16 +87,19 @@ class CachingPolicyTest extends FunctionalTest
             'CachingPolicyController/test'
         );
 
-        $this->assertEquals(
-            'max-age=999, must-revalidate, no-transform',
-            $response->getHeader('Cache-Control'),
-            'Header appears as configured'
+        $directives = $this->getCsvAsArray($response->getHeader('Cache-Control'));
+
+        $this->assertCount(2, $directives);
+        $this->assertContains('max-age=999', $directives);
+        $this->assertContains('must-revalidate', $directives);
+
+        $vary = $this->getCsvAsArray($response->getHeader('Vary'));
+        $this->assertArraySubset(
+            array_keys(HTTPCacheControlMiddleware::config()->get('defaultVary')),
+            $vary,
+            'Retains default Vary'
         );
-        $this->assertEquals(
-            'X-EyeColour',
-            $response->getHeader('Vary'),
-            'Header appears as configured'
-        );
+        $this->assertContains('X-EyeColour', $vary, 'Adds custom vary');
     }
 
     public function testCallbackOverride()
@@ -102,16 +110,16 @@ class CachingPolicyTest extends FunctionalTest
             'CallbackCachingPolicyController/test'
         );
 
-        $this->assertEquals(
-            'max-age=1001, must-revalidate, no-transform',
-            $response->getHeader('Cache-Control'),
-            'Controller\'s getCacheAge() overrides the configuration'
-        );
-        $this->assertEquals(
-            'X-HeightWeight',
-            $response->getHeader('Vary'),
-            'Controller\'s getVary() overrides the configuration'
-        );
+        $directives = $this->getCsvAsArray($response->getHeader('Cache-Control'));
+
+        $this->assertCount(2, $directives);
+        $this->assertContains('max-age=1001', $directives);
+        $this->assertContains('must-revalidate', $directives);
+
+        $vary = $this->getCsvAsArray($response->getHeader('Vary'));
+        $this->assertContains('X-HeightWeight', $vary, 'Controller\'s getVary() overrides the configuration');
+        $this->assertNotContains('X-EyeColour', $vary);
+
         $this->assertEquals(
             HTTP::gmt_date('5000'),
             $response->getHeader('Last-Modified'),
@@ -127,26 +135,17 @@ class CachingPolicyTest extends FunctionalTest
             'UnrelatedController/test'
         );
 
-        $this->assertNull($response->getHeader('Vary'), 'Headers on unrelated controller are unaffected');
+        $defaultVary = array_keys(HTTPCacheControlMiddleware::config()->get('defaultVary'));
+        $vary = $this->getCsvAsArray($response->getHeader('Vary'));
+        $this->assertEquals($vary, $defaultVary, 'Headers on unrelated controller are unaffected');
     }
 
-    public function testModificationDateFromDataObjects()
+    /**
+     * @param string $str
+     * @return array
+     */
+    protected function getCsvAsArray($str)
     {
-        // Trigger updates to HTTP::$modification_date.
-        new DataObject(['LastEdited' => '1970-01-01 00:02']);
-        new DataObject(['LastEdited' => '1970-01-01 00:01']);
-        new DataObject(['LastEdited' => '1970-01-01 00:03']);
-
-        $response = $this->makeRequest(
-            $this->configCachingPolicy,
-            CachingPolicyController::class,
-            'CachingPolicyController/test'
-        );
-
-        $this->assertEquals(
-            HTTP::gmt_date(strtotime('1970-01-01 00:03')),
-            $response->getHeader('Last-Modified'),
-            'Most recent LastEdited value prevails over the older ones'
-        );
+        return array_filter(preg_split("/\s*,\s*/", trim($str)));
     }
 }

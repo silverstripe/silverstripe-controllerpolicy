@@ -6,6 +6,7 @@ use Page;
 use SilverStripe\CMS\Controllers\ModelAsController;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Control\Middleware\HTTPCacheControlMiddleware;
 use SilverStripe\ControllerPolicy\PageControlledPolicy;
 use SilverStripe\ControllerPolicy\Policies\CachingPolicy;
 use SilverStripe\Core\Config\Config;
@@ -38,6 +39,12 @@ class PageControlledPolicyTest extends SapphireTest
         ]);
 
         Config::modify()->set(CachingPolicy::class, 'disable_cache_age_in_dev', false);
+
+        // Set to disabled at null forcing level
+        HTTPCacheControlMiddleware::config()
+            ->set('defaultState', HTTPCacheControlMiddleware::STATE_ENABLED)
+            ->set('defaultForcingLevel', 0);
+        HTTPCacheControlMiddleware::reset();
     }
 
     public function testInfoMessageIsShownToAdminUsersOnly()
@@ -66,7 +73,7 @@ class PageControlledPolicyTest extends SapphireTest
         $cachingPolicy->applyToResponse($controller, $request, $response);
 
         $this->assertContains(
-            'max-age=1620',
+            'max-age=' . 27 * 60, // see PageControlledPolicy->getCacheAge()
             (string) $response->getHeader('Cache-Control'),
             'CMS defined max age value (27 minutes) is used instead of the default (15 mins)'
         );
