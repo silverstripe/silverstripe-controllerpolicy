@@ -24,7 +24,7 @@ class CustomHeaderPolicyTest extends SapphireTest
      */
     protected $policy;
 
-    protected function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
 

@@ -34,7 +34,7 @@ class CachingPolicyTest extends FunctionalTest
         ],
     ];
 
-    protected function setUp()
+    protected function setUp(): void
     {
         parent::setUp();
 
@@ -50,7 +50,7 @@ class CachingPolicyTest extends FunctionalTest
      * Remove any policies from the middleware, since it's assigned to the Director singleton and shared between
      * tests.
      */
-    protected function tearDown()
+    protected function tearDown(): void
     {
         foreach (Director::singleton()->getMiddlewares() as $middleware) {
             if ($middleware instanceof ControllerPolicyMiddleware) {
@@ -90,8 +90,8 @@ class CachingPolicyTest extends FunctionalTest
         $directives = $this->getCsvAsArray($response->getHeader('Cache-Control'));
 
         $this->assertCount(2, $directives);
-        $this->assertContains('max-age=999', $directives);
-        $this->assertContains('must-revalidate', $directives);
+        $this->assertStringContainsString('max-age=999', $directives);
+        $this->assertStringContainsString('must-revalidate', $directives);
 
         $vary = $this->getCsvAsArray($response->getHeader('Vary'));
         $this->assertArraySubset(
@@ -99,7 +99,7 @@ class CachingPolicyTest extends FunctionalTest
             $vary,
             'Retains default Vary'
         );
-        $this->assertContains('X-EyeColour', $vary, 'Adds custom vary');
+        $this->assertStringContainsString('X-EyeColour', $vary, 'Adds custom vary');
     }
 
     public function testCallbackOverride()
@@ -113,12 +113,16 @@ class CachingPolicyTest extends FunctionalTest
         $directives = $this->getCsvAsArray($response->getHeader('Cache-Control'));
 
         $this->assertCount(2, $directives);
-        $this->assertContains('max-age=1001', $directives);
-        $this->assertContains('must-revalidate', $directives);
+        $this->assertStringContainsString('max-age=1001', $directives);
+        $this->assertStringContainsString('must-revalidate', $directives);
 
         $vary = $this->getCsvAsArray($response->getHeader('Vary'));
-        $this->assertContains('X-HeightWeight', $vary, 'Controller\'s getVary() overrides the configuration');
-        $this->assertNotContains('X-EyeColour', $vary);
+        $this->assertStringContainsString(
+            'X-HeightWeight',
+            $vary,
+            'Controller\'s getVary() overrides the configuration'
+        );
+        $this->assertStringNotContainsString('X-EyeColour', $vary);
 
         $this->assertEquals(
             HTTP::gmt_date('5000'),
